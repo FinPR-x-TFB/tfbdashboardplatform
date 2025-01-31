@@ -37,6 +37,7 @@ require_once TFBDASHBOARD_PLUGIN_DIR . 'includes/public/class-tfb-api-account-cr
 function tfbdashboard_init() {
     new TFBDashboard_Admin_Panel();
     if (get_option('tfbdashboard_enabled', false)) {
+        new TFBDashboard_Helper();
         new TFBDashboard_REST_API_Order();
         new TFBDashboard_API_Account_Creation();
     }
