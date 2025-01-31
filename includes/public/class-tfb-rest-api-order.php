@@ -69,7 +69,7 @@ class TFBDashboard_REST_API_Order {
         if (isset($request['brandId'])) {
             $order->update_meta_data('_brand_id', sanitize_text_field($request['brandId']));
         }
-        $order->save();
+        $order->save(); // Save the order to persist meta data
     }
 
     public function tfbdashboard_validate_custom_order_fields($errors, $request) {
