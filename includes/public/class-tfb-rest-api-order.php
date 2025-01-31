@@ -57,19 +57,27 @@ class TFBDashboard_REST_API_Order {
     }
 
     public function tfbdashboard_save_custom_order_fields($order, $request) {
+        error_log('TFB Dashboard: Saving custom order fields.'); // Debugging
+
         if (isset($request['challengePricingId'])) {
+            error_log('TFB Dashboard: Saving challengePricingId - ' . $request['challengePricingId']); // Debugging
             $order->update_meta_data('_challenge_pricing_id', sanitize_text_field($request['challengePricingId']));
         }
         if (isset($request['stageId'])) {
+            error_log('TFB Dashboard: Saving stageId - ' . $request['stageId']); // Debugging
             $order->update_meta_data('_stage_id', sanitize_text_field($request['stageId']));
         }
         if (isset($request['userEmail'])) {
+            error_log('TFB Dashboard: Saving userEmail - ' . $request['userEmail']); // Debugging
             $order->update_meta_data('_user_email', sanitize_email($request['userEmail']));
         }
         if (isset($request['brandId'])) {
+            error_log('TFB Dashboard: Saving brandId - ' . $request['brandId']); // Debugging
             $order->update_meta_data('_brand_id', sanitize_text_field($request['brandId']));
         }
+
         $order->save(); // Save the order to persist meta data
+        error_log('TFB Dashboard: Order saved with custom fields.'); // Debugging
     }
 
     public function tfbdashboard_validate_custom_order_fields($errors, $request) {
