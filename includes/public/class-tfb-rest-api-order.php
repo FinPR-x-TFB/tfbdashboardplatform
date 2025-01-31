@@ -75,6 +75,8 @@ class TFBDashboard_REST_API_Order {
      * Save custom fields when creating an order via API.
      */
     public function tfbdashboard_save_custom_order_fields($order, $request) {
+        error_log('Saving custom fields: ' . print_r($request->get_params(), true));
+
         if (isset($request['challengePricingId'])) {
             $order->update_meta_data('_challenge_pricing_id', sanitize_text_field($request['challengePricingId']));
         }
@@ -87,20 +89,23 @@ class TFBDashboard_REST_API_Order {
         if (isset($request['brandId'])) {
             $order->update_meta_data('_brand_id', sanitize_text_field($request['brandId']));
         }
+        $order->save(); // Ensure meta is saved
     }
+
 
     /**
      * Add custom fields to the API response.
      */
     public function tfbdashboard_add_custom_order_fields_to_response($response, $order, $request) {
-        $response->data['challengePricingId'] = $order->get_meta('_challenge_pricing_id');
-        $response->data['stageId'] = $order->get_meta('_stage_id');
-        $response->data['userEmail'] = $order->get_meta('_user_email');
-        $response->data['brandId'] = $order->get_meta('_brand_id');
+        error_log('Fetching order meta for response: Order ID ' . $order->get_id());
+
+        $response->data['challengePricingId'] = $order->get_meta('_challenge_pricing_id', true);
+        $response->data['stageId'] = $order->get_meta('_stage_id', true);
+        $response->data['userEmail'] = $order->get_meta('_user_email', true);
+        $response->data['brandId'] = $order->get_meta('_brand_id', true);
+
+        error_log('Response values: ' . print_r($response->data, true));
 
         return $response;
     }
 }
-
-// Initialize the class.
-new TFBDashboard_REST_API_Order();
