@@ -16,6 +16,12 @@ class TFBDashboard_Helper {
         add_action('woocommerce_admin_order_data_after_order_details', array($this, 'show_all_custom_order_meta_in_custom_fields'), 10, 2);
     }
 
+    public static function tfbdashboard_log( $message ) {
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( '[TFBDashboard] ' . $message );
+        }
+    }
+
     public function show_all_custom_order_meta_in_custom_fields($order) {
         // Get all metadata for the order
         $order_id = $order->get_id();

@@ -7,41 +7,55 @@
  *
  * @package tfbdashboard
  */
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
 class TFBDashboard_API_Account_Creation {
     public function __construct() {
-        add_action('woocommerce_order_status_changed', array($this, 'tfbdashboard_create_challenge_account'), 10, 3);
+        add_action( 'woocommerce_order_status_changed', array( $this, 'tfbdashboard_order_status_changed' ), 10, 4 );
     }
 
-    public function tfbdashboard_create_challenge_account($order_id, $old_status, $new_status) {
-        if ($new_status === 'completed') {
-            $order = wc_get_order($order_id);
-            $challenge_pricing_id = $order->get_meta('_challenge_pricing_id');
-            $stage_id = $order->get_meta('_stage_id');
-            $user_email = $order->get_meta('_user_email');
-            $brand_id = $order->get_meta('_brand_id');
+    /**
+     * Trigger challenge account creation when an order is completed.
+     *
+     * @param int      $order_id
+     * @param string   $old_status
+     * @param string   $new_status
+     * @param WC_Order $order
+     */
+    public function tfbdashboard_order_status_changed( $order_id, $old_status, $new_status, $order ) {
+        // Only trigger when the order is marked as completed.
+        if ( 'completed' !== $new_status ) {
+            return;
+        }
 
-            $data = array(
-                'challengePricingId' => $challenge_pricing_id,
-                'stageId' => $stage_id,
-                'userEmail' => $user_email,
-                'brandId' => $brand_id,
-            );
+        $api_url = 'https://gateway-dev.thefundedbettor.com/api/source/challenge-accounts';
 
-            $response = wp_remote_post('https://gateway-dev.thefundedbettor.com/api/source/challenge-accounts', array(
-                'headers' => array(
-                    'Authorization' => 'Bearer YOUR_SECRET_TOKEN',
-                    'Content-Type' => 'application/json',
-                ),
-                'body' => json_encode($data),
-            ));
+        // Prepare the POST arguments.
+        $args = array(
+            'method'  => 'POST',
+            'timeout' => 30,
+            'headers' => array(
+                'Authorization' => 'Bearer YOUR_SECRET_TOKEN', // Replace with your actual secret token.
+                'Content-Type'  => 'application/json',
+            ),
+            'body'    => json_encode( array(
+                'order_id'           => $order_id,
+                'challengePricingId' => $order->get_meta( 'challengePricingId' ),
+                'stageId'            => $order->get_meta( 'stageId' ),
+                'userEmail'          => $order->get_meta( 'userEmail' ),
+                'brandId'            => $order->get_meta( 'brandId' ),
+                // Add more fields as needed.
+            ) ),
+        );
 
-            if (is_wp_error($response)) {
-                error_log('TFB Dashboard: Error creating challenge account - ' . $response->get_error_message());
-            }
+        $response = wp_remote_post( $api_url, $args );
+
+        if ( is_wp_error( $response ) ) {
+            error_log( 'TFBDashboard API Account Creation Error: ' . $response->get_error_message() );
+        } else {
+            error_log( 'TFBDashboard API Account Creation Response: ' . wp_remote_retrieve_body( $response ) );
         }
     }
 }
