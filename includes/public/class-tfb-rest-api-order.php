@@ -13,99 +13,108 @@ if (!defined('ABSPATH')) {
 
 class TFBDashboard_REST_API_Order {
     public function __construct() {
+        // Register custom fields for the REST API
         add_action('rest_api_init', array($this, 'tfbdashboard_register_custom_order_fields'));
-        add_action('woocommerce_rest_insert_order_object', array($this, 'tfbdashboard_save_custom_order_fields'), 10, 2);
+
+        // Save custom fields when creating an order via REST API
+        add_action('woocommerce_rest_insert_order_object', array($this, 'tfbdashboard_save_custom_order_fields'), 10, 3);
+
+        // Add custom fields to the REST API response
+        add_filter('woocommerce_rest_prepare_shop_order_object', array($this, 'tfbdashboard_add_custom_fields_to_response'), 10, 3);
+
+        // Validate custom fields before creating an order
         add_filter('woocommerce_rest_create_order_validation', array($this, 'tfbdashboard_validate_custom_order_fields'), 10, 2);
-        add_filter('woocommerce_rest_prepare_shop_order_object', array($this, 'tfbdashboard_add_custom_order_fields_to_response'), 10, 3);
     }
 
     /**
-     * Register custom fields for WooCommerce Order API.
+     * Register custom fields for the REST API.
      */
     public function tfbdashboard_register_custom_order_fields() {
         register_rest_field('shop_order', 'challengePricingId', array(
             'schema' => array(
-                'description' => __('Challenge Pricing ID'),
-                'type'        => 'string',
-                'context'     => array('view', 'edit'),
+                'description' => 'Challenge Pricing ID for the order.',
+                'type' => 'string',
+                'context' => array('view', 'edit'),
+                'required' => true,
             ),
         ));
 
         register_rest_field('shop_order', 'stageId', array(
             'schema' => array(
-                'description' => __('Stage ID'),
-                'type'        => 'string',
-                'context'     => array('view', 'edit'),
+                'description' => 'Stage ID for the order.',
+                'type' => 'string',
+                'context' => array('view', 'edit'),
+                'required' => true,
             ),
         ));
 
         register_rest_field('shop_order', 'userEmail', array(
             'schema' => array(
-                'description' => __('User Email'),
-                'type'        => 'string',
-                'context'     => array('view', 'edit'),
+                'description' => 'User email for the order.',
+                'type' => 'string',
+                'context' => array('view', 'edit'),
+                'required' => true,
             ),
         ));
 
         register_rest_field('shop_order', 'brandId', array(
             'schema' => array(
-                'description' => __('Brand ID'),
-                'type'        => 'string',
-                'context'     => array('view', 'edit'),
+                'description' => 'Brand ID for the order.',
+                'type' => 'string',
+                'context' => array('view', 'edit'),
+                'required' => true,
             ),
         ));
     }
 
     /**
-     * Validate custom fields before creating an order.
+     * Save custom fields when creating an order via REST API.
      */
-    public function tfbdashboard_validate_custom_order_fields($valid, $request) {
-        if (!isset($request['challengePricingId'], $request['stageId'], $request['userEmail'], $request['brandId'])) {
-            return new WP_Error(
-                'missing_required_fields',
-                __('Required fields are missing: challengePricingId, stageId, userEmail, brandId.'),
-                array('status' => 400)
-            );
-        }
+    public function tfbdashboard_save_custom_order_fields($order, $request, $creating) {
+        if ($creating) {
+            // Validate required fields
+            if (!isset($request['challengePricingId'], $request['stageId'], $request['userEmail'], $request['brandId'])) {
+                throw new WP_Error('missing_required_fields', 'Required fields are missing: challengePricingId, stageId, userEmail, brandId.', ['status' => 400]);
+            }
 
-        return $valid;
-    }
-
-    /**
-     * Save custom fields when creating an order via API.
-     */
-    public function tfbdashboard_save_custom_order_fields($order, $request) {
-        error_log('Saving custom fields: ' . print_r($request->get_params(), true));
-
-        if (isset($request['challengePricingId'])) {
+            // Save custom fields to order meta
             $order->update_meta_data('_challenge_pricing_id', sanitize_text_field($request['challengePricingId']));
-        }
-        if (isset($request['stageId'])) {
             $order->update_meta_data('_stage_id', sanitize_text_field($request['stageId']));
-        }
-        if (isset($request['userEmail'])) {
             $order->update_meta_data('_user_email', sanitize_email($request['userEmail']));
-        }
-        if (isset($request['brandId'])) {
             $order->update_meta_data('_brand_id', sanitize_text_field($request['brandId']));
+
+            $order->save(); // Save the order to persist meta data
         }
-        $order->save(); // Ensure meta is saved
     }
 
-
     /**
-     * Add custom fields to the API response.
+     * Add custom fields to the REST API response.
      */
-    public function tfbdashboard_add_custom_order_fields_to_response($response, $order, $request) {
-        error_log('Fetching order meta for response: Order ID ' . $order->get_id());
-
-        $response->data['challengePricingId'] = $order->get_meta('_challenge_pricing_id', true);
-        $response->data['stageId'] = $order->get_meta('_stage_id', true);
-        $response->data['userEmail'] = $order->get_meta('_user_email', true);
-        $response->data['brandId'] = $order->get_meta('_brand_id', true);
-
-        error_log('Response values: ' . print_r($response->data, true));
+    public function tfbdashboard_add_custom_fields_to_response($response, $order, $request) {
+        $response->data['challengePricingId'] = $order->get_meta('_challenge_pricing_id');
+        $response->data['stageId'] = $order->get_meta('_stage_id');
+        $response->data['userEmail'] = $order->get_meta('_user_email');
+        $response->data['brandId'] = $order->get_meta('_brand_id');
 
         return $response;
+    }
+
+    /**
+     * Validate custom fields before creating an order.
+     */
+    public function tfbdashboard_validate_custom_order_fields($errors, $request) {
+        if (empty($request['challengePricingId'])) {
+            $errors->add('missing_challenge_pricing_id', __('Challenge Pricing ID is required.', 'tfbdashboard'));
+        }
+        if (empty($request['stageId'])) {
+            $errors->add('missing_stage_id', __('Stage ID is required.', 'tfbdashboard'));
+        }
+        if (empty($request['userEmail'])) {
+            $errors->add('missing_user_email', __('User email is required.', 'tfbdashboard'));
+        }
+        if (empty($request['brandId'])) {
+            $errors->add('missing_brand_id', __('Brand ID is required.', 'tfbdashboard'));
+        }
+        return $errors;
     }
 }
