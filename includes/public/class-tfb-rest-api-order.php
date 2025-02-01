@@ -23,18 +23,22 @@ class TFBDashboard_Rest_API_Order {
             'challengePricingId' => array(
                 'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
                 'type'        => 'string',
+                'required'    => true,
             ),
             'stageId' => array(
                 'description' => __( 'Stage ID', 'tfbdashboard' ),
                 'type'        => 'string',
+                'required'    => true,
             ),
             'userEmail' => array(
                 'description' => __( 'User Email', 'tfbdashboard' ),
                 'type'        => 'string',
+                'required'    => true,
             ),
             'brandId' => array(
                 'description' => __( 'Brand ID', 'tfbdashboard' ),
                 'type'        => 'string',
+                'required'    => true,
             ),
         );
 
@@ -51,9 +55,10 @@ class TFBDashboard_Rest_API_Order {
                 'schema'          => array(
                     'description' => $args['description'],
                     'type'        => $args['type'],
+                    'required'    => true,
                     'context'     => array( 'view', 'edit' ),
                 ),
-            ) );
+            ));
         }
     }
 
