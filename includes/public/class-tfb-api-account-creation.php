@@ -17,7 +17,8 @@ class TFBDashboard_API_Account_Creation {
     }
 
     /**
-     * Trigger challenge account creation when an order is completed.
+     * Trigger challenge account creation when an order is completed,
+     * but only once per order.
      *
      * @param int      $order_id
      * @param string   $old_status
@@ -25,19 +26,33 @@ class TFBDashboard_API_Account_Creation {
      * @param WC_Order $order
      */
     public function tfbdashboard_order_status_changed( $order_id, $old_status, $new_status, $order ) {
-        // Only trigger when the order is marked as completed.
-        if ( 'completed' !== $new_status ) {
+        // Only trigger if the status is changing to 'completed'
+        // and it was not already 'completed'
+        if ( 'completed' !== $new_status || 'completed' === $old_status ) {
             return;
         }
 
+        // Check if the API call has already been made for this order.
+        $connection_completed = get_post_meta( $order_id, '_tfbdashboard_connection_completed', true );
+        if ( 1 == $connection_completed ) {
+            return;
+        }
+
+        // Check for transient to prevent duplicate API calls.
+        if ( false !== get_transient( 'send_api_lock_' . $order_id ) ) {
+            return;
+        }
+
+        // Set a transient lock for a short period (e.g., 3 seconds) to block duplicate API calls.
+        set_transient( 'send_api_lock_' . $order_id, true, 3 );
+
         // Retrieve settings from the admin panel.
         $environment = get_option( 'tfbdashboard_environment', 'sandbox' );
-
         if ( 'live' === $environment ) {
-            $base_url = get_option( 'tfbdashboard_live_endpoint', 'https://gateway-dev.thefundedbettor.com' );
+            $base_url = get_option( 'tfbdashboard_live_endpoint', 'https://api.ypf.customers.sigma-ventures.cloud' );
             $api_key  = get_option( 'tfbdashboard_live_api_key', '18c98a659a174bd68c6380751ff821ac686b0f6dcba14e2497a01702d7f0584d' );
         } else {
-            $base_url = get_option( 'tfbdashboard_sandbox_endpoint', 'https://gateway-dev.thefundedbettor.com' );
+            $base_url = get_option( 'tfbdashboard_sandbox_endpoint', 'https://bqsyp740n4.execute-api.ap-southeast-1.amazonaws.com' );
             $api_key  = get_option( 'tfbdashboard_sandbox_test_key', '18c98a659a174bd68c6380751ff821ac686b0f6dcba14e2497a01702d7f0584d' );
         }
 
@@ -61,13 +76,14 @@ class TFBDashboard_API_Account_Creation {
             ) ),
         );
 
+        // Execute the API call.
         $response = wp_remote_post( $api_url, $args );
 
-        // Retrieve the logging configuration.
+        // Use the helper logger for logging if enabled.
         $save_log_response = get_option( 'tfbdashboard_save_log_response', 1 );
-        $logger_data = TFBDashboard_Helper::tfbdashboard_connection_response_logger();
-        $logger = $logger_data['logger'];
-        $context = $logger_data['context'];
+        $logger_data       = TFBDashboard_Helper::tfbdashboard_connection_response_logger();
+        $logger            = $logger_data['logger'];
+        $context           = $logger_data['context'];
 
         if ( is_wp_error( $response ) ) {
             if ( $save_log_response ) {
@@ -78,5 +94,10 @@ class TFBDashboard_API_Account_Creation {
                 $logger->info( 'TFBDashboard API Account Creation Response: ' . wp_remote_retrieve_body( $response ), $context );
             }
         }
+
+        // Mark the order as having been processed.
+        update_post_meta( $order_id, '_tfbdashboard_connection_completed', 1 );
+        // Remove the transient lock.
+        delete_transient( 'send_api_lock_' . $order_id );
     }
 }
