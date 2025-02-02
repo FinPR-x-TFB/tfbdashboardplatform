@@ -7,7 +7,6 @@
  *
  * @package tfbdashboard
  */
-<?php
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
