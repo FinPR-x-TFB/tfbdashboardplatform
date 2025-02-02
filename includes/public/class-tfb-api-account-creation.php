@@ -58,9 +58,9 @@ class TFBDashboard_API_Account_Creation {
         // Force a fresh order object.
         $order = wc_get_order( $order_id );
 
-        $challengePricingId = $order->get_meta( 'challengePricingId', true );
-        $stageId            = $order->get_meta( 'stageId', true );
-        $brandId            = $order->get_meta( 'brandId', true );
+        $challengePricingId = get_post_meta( $order_id, 'challengePricingId', true );
+        $stageId            = get_post_meta( $order_id, 'stageId', true );
+        $brandId            = get_post_meta( $order_id, 'brandId', true );
         
         $api_data = array(
             'order_id'           => $order_id,
