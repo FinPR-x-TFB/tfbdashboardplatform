@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class TFBDashboard_Helper {
     public function __construct() {
+        add_filter( 'woocommerce_guest_order_payment_notice', '__return_false' );
         add_action('woocommerce_admin_order_data_after_order_details', array($this, 'show_all_custom_order_meta_in_custom_fields'), 10, 2);
     }
     /**
