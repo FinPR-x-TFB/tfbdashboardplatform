@@ -16,6 +16,13 @@ class TFBDashboard_Helper {
         add_action('woocommerce_admin_order_data_after_order_details', array($this, 'show_all_custom_order_meta_in_custom_fields'), 10, 2);
     }
 
+    public function tfbdashboard_connection_response_logger() {
+        $logger = wc_get_logger();
+        $context = array('source' => 'tfbdashboard_connection_response_log');
+        return array('logger' => $logger, 'context' => $context);
+    }
+
+
     public static function tfbdashboard_log( $message ) {
         if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
             error_log( '[TFBDashboard] ' . $message );

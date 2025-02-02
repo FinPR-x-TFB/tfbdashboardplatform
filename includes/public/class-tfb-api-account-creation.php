@@ -30,14 +30,26 @@ class TFBDashboard_API_Account_Creation {
             return;
         }
 
-        $api_url = 'https://gateway-dev.thefundedbettor.com/api/source/challenge-accounts';
+        // Retrieve settings from the admin panel.
+        $environment = get_option( 'tfbdashboard_environment', 'sandbox' );
+
+        if ( 'live' === $environment ) {
+            $base_url = get_option( 'tfbdashboard_live_endpoint', 'https://gateway-dev.thefundedbettor.com' );
+            $api_key  = get_option( 'tfbdashboard_live_api_key', '18c98a659a174bd68c6380751ff821ac686b0f6dcba14e2497a01702d7f0584d' );
+        } else {
+            $base_url = get_option( 'tfbdashboard_sandbox_endpoint', 'https://gateway-dev.thefundedbettor.com' );
+            $api_key  = get_option( 'tfbdashboard_sandbox_test_key', '18c98a659a174bd68c6380751ff821ac686b0f6dcba14e2497a01702d7f0584d' );
+        }
+
+        // Append API endpoint path.
+        $api_url = trailingslashit( $base_url ) . 'api/source/challenge-accounts';
 
         // Prepare the POST arguments.
         $args = array(
             'method'  => 'POST',
             'timeout' => 30,
             'headers' => array(
-                'Authorization' => 'Bearer YOUR_SECRET_TOKEN', // Replace with your actual secret token.
+                'Authorization' => 'Bearer ' . $api_key,
                 'Content-Type'  => 'application/json',
             ),
             'body'    => json_encode( array(
@@ -46,16 +58,25 @@ class TFBDashboard_API_Account_Creation {
                 'stageId'            => $order->get_meta( 'stageId' ),
                 'userEmail'          => $order->get_meta( 'userEmail' ),
                 'brandId'            => $order->get_meta( 'brandId' ),
-                // Add more fields as needed.
             ) ),
         );
 
         $response = wp_remote_post( $api_url, $args );
 
+        // Retrieve the logging configuration.
+        $save_log_response = get_option( 'tfbdashboard_save_log_response', 1 );
+        $logger_data = TFBDashboard_Helper::tfbdashboard_connection_response_logger();
+        $logger = $logger_data['logger'];
+        $context = $logger_data['context'];
+
         if ( is_wp_error( $response ) ) {
-            error_log( 'TFBDashboard API Account Creation Error: ' . $response->get_error_message() );
+            if ( $save_log_response ) {
+                $logger->error( 'TFBDashboard API Account Creation Error: ' . $response->get_error_message(), $context );
+            }
         } else {
-            error_log( 'TFBDashboard API Account Creation Response: ' . wp_remote_retrieve_body( $response ) );
+            if ( $save_log_response ) {
+                $logger->info( 'TFBDashboard API Account Creation Response: ' . wp_remote_retrieve_body( $response ), $context );
+            }
         }
     }
 }
