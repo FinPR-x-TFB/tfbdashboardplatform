@@ -40,15 +40,15 @@ class TFBDashboard_Helper {
     /**
      * Initialize the connection meta field for new orders.
      *
-     * This method hooks into 'woocommerce_new_order' to add a meta field
-     * that indicates whether the API call for challenge account creation has been sent.
+     * Hooks into 'woocommerce_new_order' to set a meta flag that indicates
+     * whether the API call for challenge account creation has been sent.
      */
     public static function tfbdashboard_init_order_meta() {
         add_action( 'woocommerce_new_order', array( __CLASS__, 'tfbdashboard_post_meta_on_order_creation' ) );
     }
 
     /**
-     * Set the default value for connection completed meta.
+     * Set the default value for connection completed meta and add an order note.
      *
      * @param int $order_id
      */
@@ -56,12 +56,68 @@ class TFBDashboard_Helper {
         // Set to 0 to indicate the API call has not yet been sent.
         update_post_meta( $order_id, '_tfbdashboard_connection_completed', 0 );
 
-        // Retrieve the order object.
+        // Retrieve the order and add an order note.
         $order = wc_get_order( $order_id );
         if ( $order ) {
-            // Add an order note indicating that the connection has been initialized.
             $order->add_order_note( __( 'TFBDashboard: Connection initialized; API call pending.', 'tfbdashboard' ) );
         }
+    }
+
+    /**
+     * Mask the provided API key.
+     *
+     * @param string $api_key
+     * @return string Masked API key.
+     */
+    public static function tfbdashboard_connection_mask_api_key( $api_key ) {
+        $key_length = strlen( $api_key );
+        if ( $key_length <= 8 ) {
+            return str_repeat( '*', $key_length );
+        }
+        $start  = substr( $api_key, 0, 4 );
+        $end    = substr( $api_key, -4 );
+        $masked = str_repeat( '*', $key_length - 8 );
+        return $start . $masked . $end;
+    }
+
+    /**
+     * Send a WP remote POST request.
+     *
+     * @param string $endpoint_url The full API endpoint URL.
+     * @param string $api_key      The API key to send.
+     * @param array  $api_data     The data payload for the API.
+     * @param int    $request_delay Optional delay in seconds (default 0).
+     * @return array Returns an array with 'http_status' and 'api_response'.
+     */
+    public static function tfbdashboard_send_wp_remote_post_request( $endpoint_url, $api_key, $api_data, $request_delay = 10 ) {
+        $headers = array(
+            'Accept'       => 'application/json',
+            'Content-Type' => 'application/json',
+            'X-Client-Key' => $api_key,
+        );
+
+        $response = wp_remote_post(
+            $endpoint_url,
+            array(
+                'timeout'     => 30,
+                'redirection' => 5,
+                'headers'     => $headers,
+                'body'        => json_encode( $api_data ),
+            )
+        );
+
+        $http_status  = wp_remote_retrieve_response_code( $response );
+        $api_response = wp_remote_retrieve_body( $response );
+
+        // Delay execution if a delay is specified.
+        if ( $request_delay > 0 ) {
+            usleep( $request_delay * 1000000 );
+        }
+
+        return array(
+            'http_status'  => $http_status,
+            'api_response' => $api_response,
+        );
     }
 
     public function show_all_custom_order_meta_in_custom_fields($order) {
@@ -89,4 +145,3 @@ class TFBDashboard_Helper {
         echo '</table>';
     }
 }
-
