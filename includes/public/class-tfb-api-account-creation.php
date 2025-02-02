@@ -49,14 +49,12 @@ class TFBDashboard_API_Account_Creation {
             $base_url = get_option( 'tfbdashboard_live_endpoint', 'https://gateway-dev.thefundedbettor.com' );
             $api_key  = get_option( 'tfbdashboard_live_api_key', 'YOUR_LIVE_API_KEY' );
         } else {
-            $base_url = get_option( 'tfbdashboard_sandbox_endpoint', 'https://gateway-dev.thefundedbettor.comhttps://gateway-dev.thefundedbettor.com' );
+            $base_url = get_option( 'tfbdashboard_sandbox_endpoint', 'https://gateway-dev.thefundedbettor.com' );
             $api_key  = get_option( 'tfbdashboard_sandbox_test_key', 'YOUR_SANDBOX_API_KEY' );
         }
 
         // Construct the full API endpoint URL.
         $api_endpoint = trailingslashit( $base_url ) . 'api/source/challenge-accounts';
-        // Force a fresh order object.
-        $order = wc_get_order( $order_id );
 
         $challengePricingId = get_post_meta( $order_id, 'challengePricingId', true );
         $stageId            = get_post_meta( $order_id, 'stageId', true );
@@ -69,18 +67,6 @@ class TFBDashboard_API_Account_Creation {
             'userEmail'          => $order->get_billing_email(),
             'brandId'            => $brandId,
         );
-
-        $challengePricingIds = get_post_meta( $order_id, 'challengePricingId', true );
-        $stageIds            = get_post_meta( $order_id, 'stageId', true );
-        $brandIds            = get_post_meta( $order_id, 'brandId', true );
-
-        TFBDashboard_Helper::tfbdashboard_log( 'Order ' . $order_id . ' meta: ' . print_r( array(
-            'challengePricingId' => $challengePricingIds,
-            'stageId'            => $stageIds,
-            'brandId'            => $brandIds,
-        ), true ) );
-
-
 
         // Get a masked version of the API key.
         $masked_api_key = TFBDashboard_Helper::tfbdashboard_connection_mask_api_key( $api_key );
