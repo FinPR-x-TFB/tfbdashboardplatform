@@ -89,7 +89,7 @@ class TFBDashboard_Helper {
      * @param int    $request_delay Optional delay in seconds (default 0).
      * @return array Returns an array with 'http_status' and 'api_response'.
      */
-    public static function tfbdashboard_send_wp_remote_post_request( $endpoint_url, $api_key, $api_data, $request_delay = 10 ) {
+    public static function tfbdashboard_send_wp_remote_post_request( $endpoint_url, $api_key, $api_data, $request_delay = 2 ) {
         $headers = array(
             'Accept'       => 'application/json',
             'Content-Type' => 'application/json',
