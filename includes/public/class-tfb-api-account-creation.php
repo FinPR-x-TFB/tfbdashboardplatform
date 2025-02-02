@@ -79,23 +79,41 @@ class TFBDashboard_API_Account_Creation {
         // Execute the API call.
         $response = wp_remote_post( $api_url, $args );
 
-        // Use the helper logger for logging if enabled.
+        // Retrieve the logging configuration.
         $save_log_response = get_option( 'tfbdashboard_save_log_response', 1 );
         $logger_data       = TFBDashboard_Helper::tfbdashboard_connection_response_logger();
         $logger            = $logger_data['logger'];
         $context           = $logger_data['context'];
 
+        // Retrieve the HTTP response code and body.
+        $response_code = wp_remote_retrieve_response_code( $response );
+        $body        = wp_remote_retrieve_body( $response );
+
         if ( is_wp_error( $response ) ) {
+            // If a WP error occurred.
             if ( $save_log_response ) {
                 $logger->error( 'TFBDashboard API Account Creation Error: ' . $response->get_error_message(), $context );
             }
             $order->add_order_note( sprintf( __( 'TFBDashboard API Account Creation failed: %s', 'tfbdashboard' ), $response->get_error_message() ) );
         } else {
-            if ( $save_log_response ) {
-                $logger->info( 'TFBDashboard API Account Creation Response: ' . wp_remote_retrieve_body( $response ), $context );
+            if ( $response_code >= 200 && $response_code < 300 ) {
+                // Success condition: HTTP status code is in the 200 range.
+                if ( $save_log_response ) {
+                    $logger->info( 'TFBDashboard API Account Creation Response: ' . $body, $context );
+                }
+                $order->add_order_note( __( 'TFBDashboard API Account Creation successful.', 'tfbdashboard' ) );
+            } else {
+                // Failure condition: non-success HTTP status code.
+                if ( $save_log_response ) {
+                    $logger->error( 'TFBDashboard API Account Creation Error: ' . $body, $context );
+                }
+                // Optionally, decode the response body to extract a more meaningful error message.
+                $decoded = json_decode( $body, true );
+                $message = isset( $decoded['message'] ) ? $decoded['message'] : 'Unknown error';
+                $order->add_order_note( sprintf( __( 'TFBDashboard API Account Creation failed: %s', 'tfbdashboard' ), $message ) );
             }
-            $order->add_order_note( __( 'TFBDashboard API Account Creation successful.', 'tfbdashboard' ) );
         }
+
 
         // Mark the order as having been processed.
         update_post_meta( $order_id, '_tfbdashboard_connection_completed', 1 );
