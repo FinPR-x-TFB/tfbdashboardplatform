@@ -55,14 +55,31 @@ class TFBDashboard_API_Account_Creation {
 
         // Construct the full API endpoint URL.
         $api_endpoint = trailingslashit( $base_url ) . 'api/source/challenge-accounts';
+        // Force a fresh order object.
+        $order = wc_get_order( $order_id );
+
+        $challengePricingId = $order->get_meta( 'challengePricingId', true );
+        $stageId            = $order->get_meta( 'stageId', true );
+        $brandId            = $order->get_meta( 'brandId', true );
         
         $api_data = array(
             'order_id'           => $order_id,
-            'challengePricingId' => $order->get_meta( 'challengePricingId', true ),
-            'stageId'            => $order->get_meta( 'stageId', true ),
+            'challengePricingId' => $challengePricingId
+            'stageId'            => $stageId,
             'userEmail'          => $order->get_billing_email(),
-            'brandId'            => $order->get_meta( 'brandId', true ),
+            'brandId'            => $brandId,
         );
+
+        $challengePricingIds = get_post_meta( $order_id, 'challengePricingId', true );
+        $stageIds            = get_post_meta( $order_id, 'stageId', true );
+        $brandIds            = get_post_meta( $order_id, 'brandId', true );
+
+        TFBDashboard_Helper::tfbdashboard_log( 'Order ' . $order_id . ' meta: ' . print_r( array(
+            'challengePricingId' => $challengePricingIds,
+            'stageId'            => $stageIds,
+            'brandId'            => $brandIds,
+        ), true ) );
+
 
 
         // Get a masked version of the API key.
