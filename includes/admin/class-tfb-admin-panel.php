@@ -86,7 +86,7 @@ class TFBDashboard_Admin_Panel {
                     <tr valign="top">
                         <th scope="row"><?php esc_html_e( 'Sandbox Endpoint URL', 'tfbdashboard' ); ?></th>
                         <td>
-                            <input type="text" name="tfbdashboard_sandbox_endpoint" value="<?php echo esc_attr( get_option( 'tfbdashboard_sandbox_endpoint', 'https://bqsyp740n4.execute-api.ap-southeast-1.amazonaws.com' ) ); ?>" class="regular-text" />
+                            <input type="text" name="tfbdashboard_sandbox_endpoint" value="<?php echo esc_attr( get_option( 'tfbdashboard_sandbox_endpoint', 'https://gateway-dev.thefundedbettor.com' ) ); ?>" class="regular-text" />
                         </td>
                     </tr>
                     <!-- Sandbox Test Key -->
@@ -100,7 +100,7 @@ class TFBDashboard_Admin_Panel {
                     <tr valign="top">
                         <th scope="row"><?php esc_html_e( 'Live Endpoint URL', 'tfbdashboard' ); ?></th>
                         <td>
-                            <input type="text" name="tfbdashboard_live_endpoint" value="<?php echo esc_attr( get_option( 'tfbdashboard_live_endpoint', 'https://api.ypf.customers.sigma-ventures.cloud' ) ); ?>" class="regular-text" />
+                            <input type="text" name="tfbdashboard_live_endpoint" value="<?php echo esc_attr( get_option( 'tfbdashboard_live_endpoint', 'https://gateway-dev.thefundedbettor.com' ) ); ?>" class="regular-text" />
                         </td>
                     </tr>
                     <!-- Live API Key -->
