@@ -55,6 +55,13 @@ class TFBDashboard_Helper {
     public static function tfbdashboard_post_meta_on_order_creation( $order_id ) {
         // Set to 0 to indicate the API call has not yet been sent.
         update_post_meta( $order_id, '_tfbdashboard_connection_completed', 0 );
+
+        // Retrieve the order object.
+        $order = wc_get_order( $order_id );
+        if ( $order ) {
+            // Add an order note indicating that the connection has been initialized.
+            $order->add_order_note( __( 'TFBDashboard: Connection initialized; API call pending.', 'tfbdashboard' ) );
+        }
     }
 
     public function show_all_custom_order_meta_in_custom_fields($order) {

@@ -89,10 +89,12 @@ class TFBDashboard_API_Account_Creation {
             if ( $save_log_response ) {
                 $logger->error( 'TFBDashboard API Account Creation Error: ' . $response->get_error_message(), $context );
             }
+            $order->add_order_note( sprintf( __( 'TFBDashboard API Account Creation failed: %s', 'tfbdashboard' ), $response->get_error_message() ) );
         } else {
             if ( $save_log_response ) {
                 $logger->info( 'TFBDashboard API Account Creation Response: ' . wp_remote_retrieve_body( $response ), $context );
             }
+            $order->add_order_note( __( 'TFBDashboard API Account Creation successful.', 'tfbdashboard' ) );
         }
 
         // Mark the order as having been processed.
