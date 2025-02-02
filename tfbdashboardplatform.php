@@ -6,7 +6,7 @@
  * GitHub Plugin URI: https://github.com/FinPR-x-TFB/tfbdashboardplatform
  * GitHub Branch: develop
  * @wordpress-plugin
- * Plugin Name:       TFB Dashboard
+ * Plugin Name:       TFB Dashboard Connection
  * Plugin URI:        https://finpr.com
  * Description:       This Plugin to Create User and Account to Dashboard TFB Dashboard
  * Version:           1.0.1.2
