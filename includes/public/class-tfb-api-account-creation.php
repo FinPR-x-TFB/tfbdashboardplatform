@@ -55,14 +55,17 @@ class TFBDashboard_API_Account_Creation {
 
         // Construct the full API endpoint URL.
         $api_endpoint = trailingslashit( $base_url ) . 'api/source/challenge-accounts';
+        $challengePricingId = $order->get_meta( 'challengePricingId', true );
+        $stageId            = $order->get_meta( 'stageId', true );
+        $brandId            = $order->get_meta( 'brandId', true );
 
         // Build the API request payload.
         $api_data = array(
             'order_id'           => $order_id,
-            'challengePricingId' => $order->get_meta( 'challengePricingId' ),
-            'stageId'            => $order->get_meta( 'stageId' ),
+            'challengePricingId' => $challengePricingId,
+            'stageId'            => $stageId,
             'userEmail'          => $order->get_billing_email(), // Use billing email
-            'brandId'            => $order->get_meta( 'brandId' ),
+            'brandId'            => $brandId,
         );
 
         // Get a masked version of the API key.
@@ -76,7 +79,7 @@ class TFBDashboard_API_Account_Creation {
 
         // Log the API call details.
         if ( $save_log_response ) {
-            $api_call_log  = "--Begin TFBDashboard API Call | competition--\n";
+            $api_call_log  = "--Begin TFBDashboard API Call --\n";
             $api_call_log .= "Endpoint URL: " . $api_endpoint . "\n";
             $api_call_log .= "API Key: " . $masked_api_key . "\n";
             $api_call_log .= "Body: " . json_encode( $api_data ) . "\n";
@@ -91,7 +94,7 @@ class TFBDashboard_API_Account_Creation {
 
         // Prepare and log the API response.
         if ( $save_log_response ) {
-            $api_response_log  = "--Begin TFBDashboard API Response-- | competition\n";
+            $api_response_log  = "--Begin TFBDashboard API Response--\n";
             $api_response_log .= "Response: " . $api_response . "\n";
             $api_response_log .= "--End Response--";
             if ( $http_status >= 200 && $http_status < 300 ) {
