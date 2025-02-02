@@ -14,8 +14,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TFBDashboard_Helper {
     public function __construct() {
         add_action( 'wp', array( $this, 'clear_notices_on_order_pay' ) );
-        add_action('woocommerce_admin_order_data_after_order_details', array($this, 'show_all_custom_order_meta_in_custom_fields'), 10, 2);
+        // Hook the auto-fill function to run on init.
+        add_action( 'init', array( $this, 'init_session'));
+        add_action( 'init', array( $this, 'tfbdashboard_auto_fill_guest_order_email' ) );
+        add_action( 'woocommerce_admin_order_data_after_order_details', array($this, 'show_all_custom_order_meta_in_custom_fields'), 10, 2);
     }
+
+    public function init_session() {
+        if ( ! is_admin() && ! WC()->session ) {
+            WC()->session = new WC_Session_Handler();
+            WC()->session->init();
+        }
+    }
+
     /**
      * Log a message when WP_DEBUG is enabled.
      *
@@ -124,6 +135,27 @@ class TFBDashboard_Helper {
     public function clear_notices_on_order_pay() {
         if (is_wc_endpoint_url('order-pay')) {
             wc_clear_notices();
+        }
+    }
+
+    /**
+     * Auto-fill the guest order email on the order-pay page.
+     *
+     * If the current URL is for the order-pay endpoint, the 'email' parameter is missing,
+     * and the user is not logged in, this function retrieves the order by the order key
+     * and auto-fills the email parameter using the order's billing email.
+     */
+    public function tfbdashboard_auto_fill_guest_order_email() {
+        if ( is_wc_endpoint_url( 'order-pay' ) && empty( $_GET['email'] ) && ! is_user_logged_in() && ! empty( $_GET['key'] ) ) {
+            // Retrieve the order ID using the order key from the URL.
+            $order_id = wc_get_order_id_by_order_key( sanitize_text_field( $_GET['key'] ) );
+            if ( $order_id ) {
+                $order = wc_get_order( $order_id );
+                // Only for guest orders (customer_id == 0)
+                if ( $order && ! $order->get_customer_id() ) {
+                    $_GET['email'] = $order->get_billing_email();
+                }
+            }
         }
     }
 
