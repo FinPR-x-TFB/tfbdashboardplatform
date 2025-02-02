@@ -7,26 +7,31 @@
  *
  * @package tfbdashboard
  */
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
 class TFBDashboard_Helper {
-    public function __construct() {
-        add_action('woocommerce_admin_order_data_after_order_details', array($this, 'show_all_custom_order_meta_in_custom_fields'), 10, 2);
-    }
-
-    public function tfbdashboard_connection_response_logger() {
-        $logger = wc_get_logger();
-        $context = array('source' => 'tfbdashboard_connection_response_log');
-        return array('logger' => $logger, 'context' => $context);
-    }
-
-
+    /**
+     * Log a message when WP_DEBUG is enabled.
+     *
+     * @param string $message
+     */
     public static function tfbdashboard_log( $message ) {
         if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
             error_log( '[TFBDashboard] ' . $message );
         }
+    }
+
+    /**
+     * Returns a logger instance and context for logging.
+     *
+     * @return array
+     */
+    public static function tfbdashboard_connection_response_logger() {
+        $logger  = wc_get_logger();
+        $context = array( 'source' => 'tfbdashboard_connection_response_log' );
+        return array( 'logger' => $logger, 'context' => $context );
     }
 
     public function show_all_custom_order_meta_in_custom_fields($order) {
@@ -54,6 +59,4 @@ class TFBDashboard_Helper {
         echo '</table>';
     }
 }
-
-
 
