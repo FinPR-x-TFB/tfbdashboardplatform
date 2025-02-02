@@ -58,10 +58,11 @@ class TFBDashboard_API_Account_Creation {
         $challengePricingId = $order->get_meta( 'challengePricingId', true );
         $stageId            = $order->get_meta( 'stageId', true );
         $brandId            = $order->get_meta( 'brandId', true );
+        $order_ids = $order->get_id();
 
         // Build the API request payload.
         $api_data = array(
-            'order_id'           => $order_id,
+            'order_id'           => $order_ids,
             'challengePricingId' => $challengePricingId,
             'stageId'            => $stageId,
             'userEmail'          => $order->get_billing_email(), // Use billing email
