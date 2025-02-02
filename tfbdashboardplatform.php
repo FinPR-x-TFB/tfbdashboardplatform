@@ -36,10 +36,18 @@ require_once TFBDASHBOARD_PLUGIN_DIR . 'includes/public/class-tfb-api-account-cr
 // Initialize plugin classes
 function tfbdashboard_init() {
     new TFBDashboard_Admin_Panel();
-    if (get_option('tfbdashboard_enabled', false)) {
-        new TFBDashboard_Helper();
+    if ( get_option('tfbdashboard_enabled', false) ) {
+        // Call the static method for initializing order meta.
+        TFBDashboard_Helper::tfbdashboard_init_order_meta();
+        
+        // Instantiate the helper if you need to use non-static methods.
+        $tfb_helper = new TFBDashboard_Helper();
+        
         new TFBDashboard_REST_API_Order();
         new TFBDashboard_API_Account_Creation();
+        
+        // Later, when needed, you can use instance methods:
+        $tfb_helper->show_all_custom_order_meta_in_custom_fields($order);
     }
 }
 add_action('plugins_loaded', 'tfbdashboard_init');

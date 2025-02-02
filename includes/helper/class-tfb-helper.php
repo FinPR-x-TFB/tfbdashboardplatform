@@ -34,6 +34,26 @@ class TFBDashboard_Helper {
         return array( 'logger' => $logger, 'context' => $context );
     }
 
+    /**
+     * Initialize the connection meta field for new orders.
+     *
+     * This method hooks into 'woocommerce_new_order' to add a meta field
+     * that indicates whether the API call for challenge account creation has been sent.
+     */
+    public static function tfbdashboard_init_order_meta() {
+        add_action( 'woocommerce_new_order', array( __CLASS__, 'tfbdashboard_post_meta_on_order_creation' ) );
+    }
+
+    /**
+     * Set the default value for connection completed meta.
+     *
+     * @param int $order_id
+     */
+    public static function tfbdashboard_post_meta_on_order_creation( $order_id ) {
+        // Set to 0 to indicate the API call has not yet been sent.
+        update_post_meta( $order_id, '_tfbdashboard_connection_completed', 0 );
+    }
+
     public function show_all_custom_order_meta_in_custom_fields($order) {
         // Get all metadata for the order
         $order_id = $order->get_id();
