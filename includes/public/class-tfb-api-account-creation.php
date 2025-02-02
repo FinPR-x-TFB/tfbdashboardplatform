@@ -55,14 +55,14 @@ class TFBDashboard_API_Account_Creation {
 
         // Construct the full API endpoint URL.
         $api_endpoint = trailingslashit( $base_url ) . 'api/source/challenge-accounts';
-        $challengePricingId = $order->get_meta( 'challengePricingId', true );
-        $stageId            = $order->get_meta( 'stageId', true );
-        $brandId            = $order->get_meta( 'brandId', true );
-        $order_ids = $order->get_id();
+        $meta_data = get_post_meta( $order_id );
+        $challengePricingId = isset( $meta_data['challengePricingId'][0] ) ? $meta_data['challengePricingId'][0] : '';
+        $stageId            = isset( $meta_data['stageId'][0] ) ? $meta_data['stageId'][0] : '';
+        $brandId            = isset( $meta_data['brandId'][0] ) ? $meta_data['brandId'][0] : '';
 
         // Build the API request payload.
         $api_data = array(
-            'order_id'           => $order_ids,
+            'order_id'           => $order_id,
             'challengePricingId' => $challengePricingId,
             'stageId'            => $stageId,
             'userEmail'          => $order->get_billing_email(), // Use billing email
