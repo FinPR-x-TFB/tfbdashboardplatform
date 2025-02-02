@@ -71,7 +71,7 @@ class TFBDashboard_API_Account_Creation {
                 'order_id'           => $order_id,
                 'challengePricingId' => $order->get_meta( 'challengePricingId' ),
                 'stageId'            => $order->get_meta( 'stageId' ),
-                'userEmail'          => $order->get_meta( 'userEmail' ),
+                'userEmail'          => $order->get_billing_email(),
                 'brandId'            => $order->get_meta( 'brandId' ),
             ) ),
         );
