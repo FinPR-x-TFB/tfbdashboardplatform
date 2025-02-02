@@ -64,7 +64,7 @@ class TFBDashboard_API_Account_Creation {
         
         $api_data = array(
             'order_id'           => $order_id,
-            'challengePricingId' => $challengePricingId
+            'challengePricingId' => $challengePricingId,
             'stageId'            => $stageId,
             'userEmail'          => $order->get_billing_email(),
             'brandId'            => $brandId,
