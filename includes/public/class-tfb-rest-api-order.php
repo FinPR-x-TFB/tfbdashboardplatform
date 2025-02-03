@@ -57,12 +57,19 @@ class TFBDashboard_Rest_API_Order {
                     return get_post_meta($order['id'], $field, true);
                 },
                 'update_callback' => function($value, $order, $field_name) use ($args) {
-                    if (is_string($value) && trim($value) === '') {
-                        return new WP_Error('empty_field', sprintf(__('The %s field cannot be empty.', 'tfbdashboard'), $args['description']));
-                    } else if (!empty($value)) {
-                        update_post_meta($order->get_id(), $field_name, sanitize_text_field($value));
-                    } else {
-                        return new WP_Error('empty_field', sprintf(__('The %s field cannot be empty.', 'tfbdashboard'), $args['description']));
+                    $required_fields = array('challengePricingId', 'stageId', 'userEmail', 'brandId');
+
+                    // Check for empty strings in all required fields
+                    foreach ($required_fields as $req_field) {
+                        if (is_string($value[$req_field]) && trim($value[$req_field]) === '') {
+                            return new WP_Error('empty_field', sprintf(__('The %s field cannot be empty.', 'tfbdashboard'), $custom_fields[$req_field]['description']));
+                        }
+                    }
+
+                    if (!empty($value)) {
+                        foreach ($value as $key => $val) {
+                            update_post_meta($order->get_id(), $key, sanitize_text_field($val));
+                        }
                     }
                     return true;
                 },
