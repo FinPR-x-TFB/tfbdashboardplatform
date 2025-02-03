@@ -28,21 +28,22 @@ class TFBDashboard_Rest_API_Order {
             'challengePricingId' => array(
                 'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required' => true,
+                'required'    => true,
             ),
             'stageId' => array(
                 'description' => __( 'Stage ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required' => true,
+                'required'    => true,
             ),
             'userEmail' => array(
                 'description' => __( 'User Email', 'tfbdashboard' ),
                 'type'        => 'string',
+                // Not marked as required here because we fall back to billing email.
             ),
             'brandId' => array(
                 'description' => __( 'Brand ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required' => true,
+                'required'    => true,
             ),
         );
 
@@ -52,6 +53,10 @@ class TFBDashboard_Rest_API_Order {
                     return get_post_meta( $order['id'], $field, true );
                 },
                 'update_callback' => function( $value, $order, $field_name ) {
+                    // If updating the userEmail field and it's empty, fallback to billing email.
+                    if ( 'userEmail' === $field_name && empty( $value ) ) {
+                        $value = $order->get_billing_email();
+                    }
                     if ( ! empty( $value ) ) {
                         update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
                     }
@@ -60,11 +65,12 @@ class TFBDashboard_Rest_API_Order {
                     'description' => $args['description'],
                     'type'        => $args['type'],
                     'context'     => array( 'view', 'edit' ),
-                    'required' => true,
+                    'required'    => isset( $args['required'] ) ? $args['required'] : false,
                 ),
             ) );
         }
     }
+
 
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
