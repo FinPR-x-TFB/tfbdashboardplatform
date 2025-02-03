@@ -28,81 +28,70 @@ class TFBDashboard_Rest_API_Order {
     }
 
     public function tfbdashboard_register_custom_order_fields() {
-        $custom_fields = array(
-            'challengePricingId' => array(
-                'description' => __('Challenge Pricing ID', 'tfbdashboard'),
-                'type'        => 'string',
-                'required'    => true,
-            ),
-            'stageId' => array(
-                'description' => __('Stage ID', 'tfbdashboard'),
-                'type'        => 'string',
-                'required'    => true,
-            ),
-            'userEmail' => array(
-                'description' => __('User Email', 'tfbdashboard'),
-                'type'        => 'string',
-                'required'    => true,
-            ),
-            'brandId' => array(
-                'description' => __('Brand ID', 'tfbdashboard'),
-                'type'        => 'string',
-                'required'    => true,
-            ),
-        );
+    $custom_fields = array(
+        'challengePricingId' => array(
+            'description' => __('Challenge Pricing ID', 'tfbdashboard'),
+            'type'        => 'string',
+            'required'    => true,
+        ),
+        'stageId' => array(
+            'description' => __('Stage ID', 'tfbdashboard'),
+            'type'        => 'string',
+            'required'    => true,
+        ),
+        'userEmail' => array(
+            'description' => __('User Email', 'tfbdashboard'),
+            'type'        => 'string',
+            'required'    => true,
+        ),
+        'brandId' => array(
+            'description' => __('Brand ID', 'tfbdashboard'),
+            'type'        => 'string',
+            'required'    => true,
+        ),
+    );
 
-        // Register validation for WooCommerce REST API
-        add_action('rest_api_init', function() use ($custom_fields) {
-            register_rest_field('shop_order', 'custom_validation', array(
-                'get_callback' => null,
-                'update_callback' => null,
-                'schema' => null
-            ));
-
-            add_filter('rest_pre_insert_shop_order_object', function($order, $request) use ($custom_fields) {
-                $missing_params = array();
-                
-                foreach ($custom_fields as $field => $args) {
-                    $value = $request->get_param($field);
-                    if (($value === null || $value === '')) {
-                        $missing_params[] = $field;
-                    }
-                }
-                
-                if (!empty($missing_params)) {
-                    return new WP_Error(
-                        'rest_missing_callback_param',
-                        'Missing parameter(s): ' . implode(', ', $missing_params),
-                        array(
-                            'status' => 400,
-                            'params' => $missing_params
-                        )
-                    );
-                }
-                
-                return $order;
-            }, 10, 2);
-        });
-
-        // Register the custom fields
+    add_filter('rest_pre_insert_shop_order_object', function($order, $request) use ($custom_fields) {
+        $missing_params = array();
+        
         foreach ($custom_fields as $field => $args) {
-            register_rest_field('shop_order', $field, array(
-                'get_callback' => function($order) use ($field) {
-                    return get_post_meta($order['id'], $field, true);
-                },
-                'update_callback' => function($value, $order, $field_name) {
-                    update_post_meta($order->get_id(), $field_name, sanitize_text_field($value));
-                },
-                'schema' => array(
-                    'description' => $args['description'],
-                    'type'        => $args['type'],
-                    'context'     => array('view', 'edit'),
-                    'required'    => $args['required'],
-                ),
-            ));
+            // Check both missing parameters and empty strings
+            if (!$request->has_param($field) || $request->get_param($field) === '') {
+                $missing_params[] = $field;
+            }
         }
-    }
+        
+        if (!empty($missing_params)) {
+            return new WP_Error(
+                'rest_missing_callback_param',
+                'Missing parameter(s): ' . implode(', ', $missing_params),
+                array(
+                    'status' => 400,
+                    'params' => $missing_params
+                )
+            );
+        }
+        
+        return $order;
+    }, 10, 2);
 
+    foreach ($custom_fields as $field => $args) {
+        register_rest_field('shop_order', $field, array(
+            'get_callback' => function($order) use ($field) {
+                return get_post_meta($order['id'], $field, true);
+            },
+            'update_callback' => function($value, $order, $field_name) {
+                update_post_meta($order->get_id(), $field_name, sanitize_text_field($value));
+            },
+            'schema' => array(
+                'description' => $args['description'],
+                'type'        => $args['type'],
+                'context'     => array('view', 'edit'),
+                'required'    => $args['required'],
+            ),
+        ));
+    }
+}
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
         $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
