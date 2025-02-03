@@ -65,7 +65,7 @@ class TFBDashboard_Rest_API_Order {
     }
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
-        $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
+        $required_fields = array( 'challengePricingId', 'stageId', 'brandId' );
         foreach ( $required_fields as $field ) {
             if ( empty( $request[ $field ] ) ) {
                 return new WP_Error( 'rest_order_missing_field', sprintf( __( '%s is required.', 'tfbdashboard' ), $field ), array( 'status' => 400 ) );
