@@ -15,8 +15,13 @@ class TFBDashboard_Rest_API_Order {
     public function __construct() {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ) );
         add_filter( 'rest_pre_insert_shop_order', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
-        add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
-
+            
+        // Use filter to handle customer linking/creation before order insert.
+        add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'handle_order_customer' ), 10, 2 );
+        
+        // Disable new user notification emails.
+        add_filter( 'woocommerce_email_enabled_customer_new_account', '__return_false' );
+        add_filter( 'woocommerce_email_enabled_admin_new_user', '__return_false' );
     }
 
     public function tfbdashboard_register_custom_order_fields() {
