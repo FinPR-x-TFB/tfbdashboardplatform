@@ -17,6 +17,7 @@ class TFBDashboard_Rest_API_Order {
         add_filter( 'rest_pre_insert_shop_order', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
         add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
         add_filter( 'woocommerce_rest_order_query', array( $this, 'tfbdashboard_filter_orders_by_billing_email' ), 10, 2 );
+        add_filter( 'woocommerce_rest_order_collection_params', array( $this, 'add_billing_email_param' ) );
     }
 
     public function tfbdashboard_register_custom_order_fields() {
@@ -78,18 +79,38 @@ class TFBDashboard_Rest_API_Order {
     }
 
     /**
+     * Add a custom parameter for billing_email to the orders endpoint.
+     *
+     * This makes the billing_email parameter available in API requests.
+     *
+     * @param array $params The existing collection parameters.
+     * @return array Modified collection parameters.
+     */
+    public function add_billing_email_param( $params ) {
+        $params['billing_email'] = array(
+            'description'       => __( 'Filter orders by billing email.', 'tfbdashboard' ),
+            'type'              => 'string',
+            'sanitize_callback' => 'sanitize_email',
+        );
+        return $params;
+    }
+
+    /**
      * Filter orders by billing email if provided via the REST API.
      *
-     * Allows API requests like:
-     * /wp-json/wc/v3/orders?billing_email=john.doe@example.com
+     * For example, a request like:
+     *   GET /wp-json/wc/v3/orders?billing_email=john.doe@example.com
+     * will be filtered to only include orders where the _billing_email meta value matches.
      *
      * @param array           $args    The query arguments.
      * @param WP_REST_Request $request The REST API request object.
      * @return array Modified query arguments.
      */
     public function tfbdashboard_filter_orders_by_billing_email( $args, $request ) {
-        if ( ! empty( $request['billing_email'] ) ) {
-            $billing_email = sanitize_text_field( $request['billing_email'] );
+        // Use the WP_REST_Request getter to retrieve the parameter.
+        $billing_email = $request->get_param( 'billing_email' );
+        if ( ! empty( $billing_email ) ) {
+            $billing_email = sanitize_email( $billing_email );
             // Ensure meta_query exists.
             if ( ! isset( $args['meta_query'] ) || ! is_array( $args['meta_query'] ) ) {
                 $args['meta_query'] = array();
@@ -97,7 +118,7 @@ class TFBDashboard_Rest_API_Order {
             $args['meta_query'][] = array(
                 'key'     => '_billing_email',
                 'value'   => $billing_email,
-                'compare' => '='
+                'compare' => '=',
             );
         }
         return $args;
