@@ -74,25 +74,6 @@ class TFBDashboard_Rest_API_Order {
         return $prepared_post;
     }
 
-    public function tfbdashboard_save_custom_order_fields($order, $request) {
-        $custom_fields = array('challengePricingId', 'stageId', 'userEmail', 'brandId');
-
-        foreach ($custom_fields as $field) {
-            if (isset($request[$field]) && !empty($request[$field])) {
-                // Save the custom field if it is provided and not empty
-                $order->update_meta_data($field, sanitize_text_field($request[$field]));
-            } elseif ($field === 'userEmail' && empty($request[$field])) {
-                // If userEmail is empty, set it to the billing email
-                $billing_email = $order->get_billing_email();
-                if (!empty($billing_email)) {
-                    $order->update_meta_data('userEmail', sanitize_email($billing_email));
-                }
-            }
-        }
-
-        $order->save(); // Save the order to persist meta data
-    }
-
 
     /**
      * Handles the order's customer.
