@@ -16,7 +16,7 @@ class TFBDashboard_Rest_API_Order {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ) );
         add_filter( 'rest_pre_insert_shop_order', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
         add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
-        add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_set_or_create_customer_based_on_email' ), 10, 2 );
+        add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_set_or_create_customer_based_on_email' ), 20, 2 );
     }
 
     public function tfbdashboard_register_custom_order_fields() {
@@ -104,19 +104,24 @@ class TFBDashboard_Rest_API_Order {
                 $i++;
             }
 
-            // Generate a strong random password (12 characters: uppercase, lowercase, numbers, symbols).
+            // Generate a strong random password (using the helper function).
             $password = TFBDashboard_Helper::tfbdashboard_generate_strong_random_password( 12 );
 
             // Create the user silently.
             $user_id = wp_create_user( $username, $password, $billing_email );
             if ( ! is_wp_error( $user_id ) ) {
+                // Set the order's customer ID.
                 $order->set_customer_id( $user_id );
                 $order->save();
+                // Ensure the underlying meta is updated.
+                update_post_meta( $order->get_id(), '_customer_user', $user_id );
             }
         } else {
             // User exists; set the order's customer_id.
             $order->set_customer_id( $user->ID );
             $order->save();
+            // Also update the meta.
+            update_post_meta( $order->get_id(), '_customer_user', $user->ID );
         }
     }
 }
