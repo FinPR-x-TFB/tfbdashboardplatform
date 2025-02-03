@@ -33,45 +33,93 @@ class TFBDashboard_Rest_API_Order {
             'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
             'type'        => 'string',
             'required'    => true,
+            'arg_options' => array(
+                'sanitize_callback' => function( $value ) {
+                    return sanitize_text_field( $value );
+                },
+                'validate_callback' => function( $value ) {
+                    // Value must be a non-empty string of at least 3 characters.
+                    return is_string( $value ) && strlen( trim( $value ) ) >= 3;
+                },
+            ),
         ),
         'stageId' => array(
             'description' => __( 'Stage ID', 'tfbdashboard' ),
             'type'        => 'string',
             'required'    => true,
+            'arg_options' => array(
+                'sanitize_callback' => function( $value ) {
+                    return sanitize_text_field( $value );
+                },
+                'validate_callback' => function( $value ) {
+                    return is_string( $value ) && strlen( trim( $value ) ) >= 3;
+                },
+            ),
         ),
         'userEmail' => array(
             'description' => __( 'User Email', 'tfbdashboard' ),
             'type'        => 'string',
             'required'    => true,
+            'arg_options' => array(
+                'sanitize_callback' => function( $value ) {
+                    return sanitize_email( $value );
+                },
+                'validate_callback' => function( $value ) {
+                    // Allow fallback to billing email if empty.
+                    $value = trim( $value );
+                    return ! empty( $value ) && strlen( $value ) >= 3;
+                },
+            ),
         ),
         'brandId' => array(
             'description' => __( 'Brand ID', 'tfbdashboard' ),
             'type'        => 'string',
             'required'    => true,
+            'arg_options' => array(
+                'sanitize_callback' => function( $value ) {
+                    return sanitize_text_field( $value );
+                },
+                'validate_callback' => function( $value ) {
+                    return is_string( $value ) && strlen( trim( $value ) ) >= 3;
+                },
+            ),
         ),
     );
 
     foreach ( $custom_fields as $field => $args ) {
+        // Build a schema array and allow filtering (so others can modify it if needed)
+        $schema = apply_filters( "tfbdashboard/register/{$field}", array(
+            "type"        => $args['type'],
+            "description" => $args['description'],
+            "required"    => $args['required'],
+            "arg_options" => $args['arg_options'],
+        ) );
+
         register_rest_field( 'shop_order', $field, array(
             'get_callback'    => function( $order ) use ( $field ) {
                 return get_post_meta( $order['id'], $field, true );
             },
-            'update_callback' => function( $value, $order, $field_name ) {
-                // Validate that the value is not an empty string
-                if ( $value === '' ) {
-                    return new WP_Error( 'rest_invalid_param', sprintf( __( '%s cannot be an empty string.' ), $field_name ), array( 'status' => 400 ) );
+            'update_callback' => function( $value, $order, $field_name ) use ( $field ) {
+                // For the userEmail field, if value is empty, fallback to billing email.
+                if ( 'userEmail' === $field && empty( $value ) ) {
+                    $value = $order->get_billing_email();
                 }
-                update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
+                // Final check: if the value is empty or less than 3 characters, return an error.
+                $value = trim( $value );
+                if ( empty( $value ) || strlen( $value ) < 3 ) {
+                    return new WP_Error(
+                        'rest_order_invalid_field',
+                        sprintf( __( '%s must be at least 3 characters.', 'tfbdashboard' ), $field_name ),
+                        array( 'status' => 400 )
+                    );
+                }
+                update_post_meta( $order->get_id(), $field_name, $value );
             },
-            'schema'          => array(
-                'description' => $args['description'],
-                'type'        => $args['type'],
-                'context'     => array( 'view', 'edit' ),
-                'required'    => true,
-            ),
+            'schema'          => $schema,
         ) );
     }
 }
+
 
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
