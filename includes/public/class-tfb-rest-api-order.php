@@ -74,6 +74,12 @@ class TFBDashboard_Rest_API_Order {
         return $prepared_post;
     }
 
+    public function tfbdashboard_save_custom_order_fields($order, $request) {
+        $custom_fields = array('challengePricingId', 'stageId', 'userEmail', 'brandId');
+
+
+    }
+
 
     /**
      * Handles the order's customer.
