@@ -139,43 +139,13 @@ class TFBDashboard_Helper {
     }
 
     /**
-     * Generate a strong random password.
-     *
-     * Generates a 12-character password containing uppercase, lowercase, numbers, and symbols.
-     *
-     * @param int $length Optional. Length of the password. Default 12.
-     * @return string
-     */
-    public static function tfbdashboard_generate_strong_random_password( $length = 12 ) {
-        $lower   = 'abcdefghijklmnopqrstuvwxyz';
-        $upper   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $numbers = '0123456789';
-        $symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
-        $all     = $lower . $upper . $numbers . $symbols;
-
-        // Ensure each character category is represented.
-        $password  = $lower[random_int(0, strlen($lower) - 1)];
-        $password .= $upper[random_int(0, strlen($upper) - 1)];
-        $password .= $numbers[random_int(0, strlen($numbers) - 1)];
-        $password .= $symbols[random_int(0, strlen($symbols) - 1)];
-
-        // Fill the remaining characters.
-        for ( $i = 4; $i < $length; $i++ ) {
-            $password .= $all[random_int(0, strlen($all) - 1)];
-        }
-
-        // Shuffle to remove predictable patterns.
-        return str_shuffle( $password );
-    }
-
-    /**
      * Auto-fill the guest order email on the order-pay page.
      *
      * If the current URL is for the order-pay endpoint, the 'email' parameter is missing,
      * and the user is not logged in, this function retrieves the order by the order key
      * and auto-fills the email parameter using the order's billing email.
      */
-    public static function tfbdashboard_auto_fill_guest_order_email() {
+    public function tfbdashboard_auto_fill_guest_order_email() {
         if ( is_wc_endpoint_url( 'order-pay' ) && empty( $_GET['email'] ) && ! is_user_logged_in() && ! empty( $_GET['key'] ) ) {
             // Retrieve the order ID using the order key from the URL.
             $order_id = wc_get_order_id_by_order_key( sanitize_text_field( $_GET['key'] ) );
