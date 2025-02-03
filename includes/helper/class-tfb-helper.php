@@ -139,17 +139,6 @@ class TFBDashboard_Helper {
     }
 
     /**
-     * Returns a logger instance and context for logging.
-     *
-     * @return array
-     */
-    public static function tfbdashboard_connection_response_logger() {
-        $logger  = wc_get_logger();
-        $context = array( 'source' => 'tfbdashboard_connection_response_log' );
-        return array( 'logger' => $logger, 'context' => $context );
-    }
-
-    /**
      * Generate a strong random password.
      *
      * Generates a 12-character password containing uppercase, lowercase, numbers, and symbols.
