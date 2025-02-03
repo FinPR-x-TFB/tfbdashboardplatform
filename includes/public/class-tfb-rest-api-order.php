@@ -77,19 +77,17 @@ class TFBDashboard_Rest_API_Order {
     public function tfbdashboard_save_custom_order_fields( $order, $request ) {
         $custom_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
         foreach ( $custom_fields as $field ) {
-            if ( isset( $request[ $field ] ) && ! empty( $request[ $field ] ) ) {
-                $order->update_meta_data( $field, sanitize_text_field( $request[ $field ] ) );
-            }
-        }
-        
-        // If userEmail is empty, update it with billing email.
-        $user_email = $order->get_meta( 'userEmail', true );
-        if ( empty( $user_email ) ) {
-            if ( isset( $request['billing']['email'] ) && ! empty( $request['billing']['email'] ) ) {
-                $order->update_meta_data( 'userEmail', sanitize_text_field( $request['billing']['email'] ) );
+            if ( 'userEmail' === $field ) {
+                // If userEmail is not provided or empty, use the billing email.
+                if ( empty( $request[ $field ] ) && isset( $request['billing']['email'] ) ) {
+                    $order->update_meta_data( $field, sanitize_email( $request['billing']['email'] ) );
+                } elseif ( isset( $request[ $field ] ) && ! empty( $request[ $field ] ) ) {
+                    $order->update_meta_data( $field, sanitize_text_field( $request[ $field ] ) );
+                }
             } else {
-                // Fallback: use the order's billing email (if already set).
-                $order->update_meta_data( 'userEmail', $order->get_billing_email() );
+                if ( isset( $request[ $field ] ) && ! empty( $request[ $field ] ) ) {
+                    $order->update_meta_data( $field, sanitize_text_field( $request[ $field ] ) );
+                }
             }
         }
     }
