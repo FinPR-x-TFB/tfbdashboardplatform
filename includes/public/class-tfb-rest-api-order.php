@@ -38,7 +38,6 @@ class TFBDashboard_Rest_API_Order {
             'userEmail' => array(
                 'description' => __( 'User Email', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required' => true,
             ),
             'brandId' => array(
                 'description' => __( 'Brand ID', 'tfbdashboard' ),
