@@ -15,8 +15,8 @@ class TFBDashboard_Rest_API_Order {
     public function __construct() {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ));
         add_filter( 'woocommerce_rest_prepare_order_object_for_response',  array( $this, 'validate_custom_order_fields_in_response'), 10, 3 );
-        //add_filter( 'woocommerce_rest_create_order_validation', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
-        //add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
+        add_filter( 'woocommerce_rest_create_order_validation', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
+        add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
 
 
             
