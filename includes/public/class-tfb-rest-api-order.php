@@ -28,70 +28,51 @@ class TFBDashboard_Rest_API_Order {
     }
 
     public function tfbdashboard_register_custom_order_fields() {
-    $custom_fields = array(
-        'challengePricingId' => array(
-            'description' => __('Challenge Pricing ID', 'tfbdashboard'),
-            'type'        => 'string',
-            'required'    => true,
-        ),
-        'stageId' => array(
-            'description' => __('Stage ID', 'tfbdashboard'),
-            'type'        => 'string',
-            'required'    => true,
-        ),
-        'userEmail' => array(
-            'description' => __('User Email', 'tfbdashboard'),
-            'type'        => 'string',
-            'required'    => true,
-        ),
-        'brandId' => array(
-            'description' => __('Brand ID', 'tfbdashboard'),
-            'type'        => 'string',
-            'required'    => true,
-        ),
-    );
-
-    add_filter('rest_pre_insert_shop_order_object', function($order, $request) use ($custom_fields) {
-        $missing_params = array();
-        
-        foreach ($custom_fields as $field => $args) {
-            // Check both missing parameters and empty strings
-            if (!$request->has_param($field) || $request->get_param($field) === '') {
-                $missing_params[] = $field;
-            }
-        }
-        
-        if (!empty($missing_params)) {
-            return new WP_Error(
-                'rest_missing_callback_param',
-                'Missing parameter(s): ' . implode(', ', $missing_params),
-                array(
-                    'status' => 400,
-                    'params' => $missing_params
-                )
-            );
-        }
-        
-        return $order;
-    }, 10, 2);
-
-    foreach ($custom_fields as $field => $args) {
-        register_rest_field('shop_order', $field, array(
-            'get_callback' => function($order) use ($field) {
-                return get_post_meta($order['id'], $field, true);
-            },
-            'update_callback' => function($value, $order, $field_name) {
-                update_post_meta($order->get_id(), $field_name, sanitize_text_field($value));
-            },
-            'schema' => array(
-                'description' => $args['description'],
-                'type'        => $args['type'],
-                'context'     => array('view', 'edit'),
-                'required'    => $args['required'],
+        $custom_fields = array(
+            'challengePricingId' => array(
+                'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
+                'type' => 'string',
+                'required' => true,
             ),
-        ));
+            'stageId' => array(
+                'description' => __( 'Stage ID', 'tfbdashboard' ),
+                'type' => 'string',
+                'required' => true,
+            ),
+            'userEmail' => array(
+                'description' => __( 'User Email', 'tfbdashboard' ),
+                'type' => 'string',
+                'required' => true,
+            ),
+            'brandId' => array(
+                'description' => __( 'Brand ID', 'tfbdashboard' ),
+                'type' => 'string',
+                'required' => true,
+            ),
+        );
+
+        foreach ($custom_fields as $field => $args) {
+            register_rest_field('shop_order', $field, array(
+                'get_callback' => function($order) use ($field) {
+                    return get_post_meta($order['id'], $field, true);
+                },
+                'update_callback' => function($value, $order, $field_name) use ($args) {
+                    if (is_string($value) && trim($value) === '') {
+                        return new WP_Error('empty_field', sprintf(__('The %s field cannot be empty.', 'tfbdashboard'), $args['description']));
+                    } else if (!empty($value)) {
+                        update_post_meta($order->get_id(), $field_name, sanitize_text_field($value));
+                    }
+                    return true;
+                },
+                'schema' => array(
+                    'description' => $args['description'],
+                    'type' => $args['type'],
+                    'context' => array('view', 'edit'),
+                    'required' => true,
+                ),
+            ));
+        }
     }
-}
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
         $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
