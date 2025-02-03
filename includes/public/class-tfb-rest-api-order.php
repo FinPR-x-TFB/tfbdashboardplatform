@@ -30,44 +30,86 @@ class TFBDashboard_Rest_API_Order {
     public function tfbdashboard_register_custom_order_fields() {
         $custom_fields = array(
             'challengePricingId' => array(
-                'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
+                'description' => __('Challenge Pricing ID', 'tfbdashboard'),
                 'type'        => 'string',
-                'required' => true,
+                'required'    => true,
             ),
             'stageId' => array(
-                'description' => __( 'Stage ID', 'tfbdashboard' ),
+                'description' => __('Stage ID', 'tfbdashboard'),
                 'type'        => 'string',
-                'required' => true,
+                'required'    => true,
             ),
             'userEmail' => array(
-                'description' => __( 'User Email', 'tfbdashboard' ),
+                'description' => __('User Email', 'tfbdashboard'),
                 'type'        => 'string',
-                'required' => true,
+                'required'    => true,
             ),
             'brandId' => array(
-                'description' => __( 'Brand ID', 'tfbdashboard' ),
+                'description' => __('Brand ID', 'tfbdashboard'),
                 'type'        => 'string',
-                'required' => true,
+                'required'    => true,
             ),
         );
 
-        foreach ( $custom_fields as $field => $args ) {
-            register_rest_field( 'shop_order', $field, array(
-                'get_callback'    => function( $order ) use ( $field ) {
-                    return get_post_meta( $order['id'], $field, true );
-                },
-                'update_callback' => function( $value, $order, $field_name ) {
-                    if ( ! empty( $value ) ) {
-                        update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
+        // Add validation filter
+        add_filter('rest_pre_insert_shop_order', function($order, $request) use ($custom_fields) {
+            $missing_params = array();
+            
+            // Check each required field
+            foreach ($custom_fields as $field => $args) {
+                if ($args['required']) {
+                    $value = $request->get_param($field);
+                    if (empty($value) && $value !== '0') {
+                        $missing_params[] = $field;
                     }
+                }
+            }
+            
+            // If there are missing parameters, return an error
+            if (!empty($missing_params)) {
+                return new WP_Error(
+                    'rest_missing_callback_param',
+                    __('Missing parameter(s): ' . implode(', ', $missing_params)),
+                    array(
+                        'status' => 400,
+                        'params' => $missing_params
+                    )
+                );
+            }
+            
+            return $order;
+        }, 10, 2);
+
+        foreach ($custom_fields as $field => $args) {
+            register_rest_field('shop_order', $field, array(
+                'get_callback' => function($order) use ($field) {
+                    return get_post_meta($order['id'], $field, true);
                 },
-                'schema'          => array(
+                'update_callback' => function($value, $order, $field_name) {
+                    // Additional validation before updating
+                    if (empty($value) && $value !== '0') {
+                        return new WP_Error(
+                            'rest_invalid_param',
+                            sprintf(__('%s cannot be empty.', 'tfbdashboard'), $field_name),
+                            array('status' => 400)
+                        );
+                    }
+                    
+                    update_post_meta(
+                        $order->get_id(), 
+                        $field_name, 
+                        sanitize_text_field($value)
+                    );
+                    
+                    return true;
+                },
+                'schema' => array(
                     'description' => $args['description'],
                     'type'        => $args['type'],
-                    'context'     => array( 'view', 'edit' ),
-                    'required' => true,
+                    'context'     => array('view', 'edit'),
+                    'required'    => $args['required'],
                 ),
-            ) );
+            ));
         }
     }
 
