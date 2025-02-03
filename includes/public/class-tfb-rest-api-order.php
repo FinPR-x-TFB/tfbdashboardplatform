@@ -16,6 +16,13 @@ class TFBDashboard_Rest_API_Order {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ) );
         add_filter( 'rest_pre_insert_shop_order', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
         add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
+            
+        // Use filter to handle customer linking/creation before order insert.
+        add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'handle_order_customer' ), 10, 2 );
+        
+        // Disable new user notification emails.
+        add_filter( 'woocommerce_email_enabled_customer_new_account', '__return_false' );
+        add_filter( 'woocommerce_email_enabled_admin_new_user', '__return_false' );
     }
 
     public function tfbdashboard_register_custom_order_fields() {
@@ -58,22 +65,14 @@ class TFBDashboard_Rest_API_Order {
     }
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
-        // Retrieve the entire JSON body.
-        $params = $request->get_json_params();
         $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
         foreach ( $required_fields as $field ) {
-            if ( empty( $params[$field] ) ) {
-                return new WP_Error( 
-                    'rest_order_missing_field', 
-                    sprintf( __( '%s is required.', 'tfbdashboard' ), $field ), 
-                    array( 'status' => 400 ) 
-                );
+            if ( empty( $request[ $field ] ) ) {
+                return new WP_Error( 'rest_order_missing_field', sprintf( __( '%s is required.', 'tfbdashboard' ), $field ), array( 'status' => 400 ) );
             }
         }
         return $prepared_post;
     }
-
-
 
     public function tfbdashboard_save_custom_order_fields( $order, $request ) {
         $custom_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
