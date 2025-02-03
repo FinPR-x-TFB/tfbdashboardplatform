@@ -50,12 +50,7 @@ class TFBDashboard_Rest_API_Order {
                 'get_callback'    => function( $order ) use ( $field ) {
                     return get_post_meta( $order['id'], $field, true );
                 },
-                'update_callback' => function( $value, $order, $field_name ) use ( $field ) {
-                    // If the field is userEmail and the provided value is empty,
-                    // use the billing email from the order.
-                    if ( 'userEmail' === $field && empty( $value ) ) {
-                        $value = $order->get_billing_email();
-                    }
+                'update_callback' => function( $value, $order, $field_name ) {
                     if ( ! empty( $value ) ) {
                         update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
                     }
