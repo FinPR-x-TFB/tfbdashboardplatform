@@ -32,22 +32,22 @@ class TFBDashboard_Rest_API_Order {
         'challengePricingId' => array(
             'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
             'type'        => 'string',
-            'required' => true,
+            'required'    => true,
         ),
         'stageId' => array(
             'description' => __( 'Stage ID', 'tfbdashboard' ),
             'type'        => 'string',
-            'required' => true,
+            'required'    => true,
         ),
         'userEmail' => array(
             'description' => __( 'User Email', 'tfbdashboard' ),
             'type'        => 'string',
-            'required' => true,
+            'required'    => true,
         ),
         'brandId' => array(
             'description' => __( 'Brand ID', 'tfbdashboard' ),
             'type'        => 'string',
-            'required' => true,
+            'required'    => true,
         ),
     );
 
@@ -57,23 +57,18 @@ class TFBDashboard_Rest_API_Order {
                 return get_post_meta( $order['id'], $field, true );
             },
             'update_callback' => function( $value, $order, $field_name ) {
-                if ( ! empty( $value ) ) {
-                    update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
+                // Validate that the value is not an empty string
+                if ( $value === '' ) {
+                    return new WP_Error( 'rest_invalid_param', sprintf( __( '%s cannot be an empty string.' ), $field_name ), array( 'status' => 400 ) );
                 }
+                update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
             },
             'schema'          => array(
                 'description' => $args['description'],
                 'type'        => $args['type'],
                 'context'     => array( 'view', 'edit' ),
-                'required' => true,
+                'required'    => true,
             ),
-            'validate_callback' => function( $value, $request, $param ) {
-                // Check if the value is an empty string
-                if ( $value === '' ) {
-                    return new WP_Error( 'rest_invalid_param', sprintf( __( '%s cannot be an empty string.' ), $param ), array( 'status' => 400 ) );
-                }
-                return true;
-            },
         ) );
     }
 }
