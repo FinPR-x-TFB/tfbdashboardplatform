@@ -16,8 +16,7 @@ class TFBDashboard_Rest_API_Order {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ) );
         add_filter( 'rest_pre_insert_shop_order', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
         add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
-        add_filter( 'woocommerce_rest_order_query', array( $this, 'tfbdashboard_filter_orders_by_billing_email' ), 10, 2 );
-        add_filter( 'woocommerce_rest_order_collection_params', array( $this, 'add_billing_email_param' ) );
+        add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_set_or_create_customer_based_on_email' ), 10, 2 );
     }
 
     public function tfbdashboard_register_custom_order_fields() {
@@ -25,17 +24,18 @@ class TFBDashboard_Rest_API_Order {
             'challengePricingId' => array(
                 'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required'    => true,
             ),
             'stageId' => array(
                 'description' => __( 'Stage ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required'    => true,
+            ),
+            'userEmail' => array(
+                'description' => __( 'User Email', 'tfbdashboard' ),
+                'type'        => 'string',
             ),
             'brandId' => array(
                 'description' => __( 'Brand ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required'    => true,
             ),
         );
 
@@ -52,10 +52,9 @@ class TFBDashboard_Rest_API_Order {
                 'schema'          => array(
                     'description' => $args['description'],
                     'type'        => $args['type'],
-                    'required'    => true,
                     'context'     => array( 'view', 'edit' ),
                 ),
-            ));
+            ) );
         }
     }
 
@@ -70,7 +69,7 @@ class TFBDashboard_Rest_API_Order {
     }
 
     public function tfbdashboard_save_custom_order_fields( $order, $request ) {
-        $custom_fields = array( 'challengePricingId', 'stageId', 'brandId' );
+        $custom_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
         foreach ( $custom_fields as $field ) {
             if ( isset( $request[ $field ] ) && ! empty( $request[ $field ] ) ) {
                 $order->update_meta_data( $field, sanitize_text_field( $request[ $field ] ) );
@@ -79,43 +78,45 @@ class TFBDashboard_Rest_API_Order {
     }
 
     /**
-     * Add a custom parameter for billing_email to the orders endpoint.
+     * Checks the billing email on the order. If a user with that email does not exist,
+     * creates a new user with a strong random password (silently, with no notification).
+     * Then sets the order's customer_id to the new (or existing) user ID.
      *
-     * This makes the billing_email parameter available in API requests.
-     *
-     * @param array $params The existing collection parameters.
-     * @return array Modified collection parameters.
+     * @param WC_Order        $order   The order object.
+     * @param WP_REST_Request $request The REST API request.
      */
-    public function add_billing_email_param( $params ) {
-        $params['billing_email'] = array(
-            'description'       => __( 'Filter orders by billing email.', 'tfbdashboard' ),
-            'type'              => 'string',
-            'sanitize_callback' => 'sanitize_email',
-        );
-        return $params;
-    }
-
-    /**
-     * Filter orders by billing email if provided via the REST API.
-     *
-     * For example, a request like:
-     *   GET /wp-json/wc/v3/orders?billing_email=john.doe@example.com
-     * will be filtered to only include orders where the _billing_email meta value matches.
-     *
-     * @param array           $args    The query arguments.
-     * @param WP_REST_Request $request The REST API request object.
-     * @return array Modified query arguments.
-     */
-    public function tfbdashboard_filter_orders_by_billing_email( $args, $request ) {
-        $billing_email = $request->get_param( 'billing_email' );
-        if ( ! empty( $billing_email ) ) {
-            $billing_email = sanitize_email( $billing_email );
-            error_log( 'Filtering orders by billing_email: ' . $billing_email );
-            $args['meta_key']   = '_billing_email';
-            $args['meta_value'] = $billing_email;
-            error_log( 'Query args: ' . print_r( $args, true ) );
+    public function tfbdashboard_set_or_create_customer_based_on_email( $order, $request ) {
+        $billing_email = $order->get_billing_email();
+        if ( empty( $billing_email ) ) {
+            return;
         }
-        return $args;
-    }
 
+        // Check if a user already exists with this billing email.
+        $user = get_user_by( 'email', $billing_email );
+        if ( ! $user ) {
+            // No user found; create one silently.
+            // Generate a username by replacing "@" with "_" from the billing email.
+            $username = sanitize_user( str_replace( '@', '_', $billing_email ) );
+            $original_username = $username;
+            $i = 1;
+            while ( username_exists( $username ) ) {
+                $username = $original_username . '_' . $i;
+                $i++;
+            }
+
+            // Generate a strong random password (12 characters: uppercase, lowercase, numbers, symbols).
+            $password = TFBDashboard_Helper::tfbdashboard_generate_strong_random_password( 12 );
+
+            // Create the user silently.
+            $user_id = wp_create_user( $username, $password, $billing_email );
+            if ( ! is_wp_error( $user_id ) ) {
+                $order->set_customer_id( $user_id );
+                $order->save();
+            }
+        } else {
+            // User exists; set the order's customer_id.
+            $order->set_customer_id( $user->ID );
+            $order->save();
+        }
+    }
 }
