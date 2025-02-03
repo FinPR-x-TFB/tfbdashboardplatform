@@ -51,57 +51,47 @@ class TFBDashboard_Rest_API_Order {
             ),
         );
 
-        // Add validation filter
-        add_filter('rest_pre_insert_shop_order', function($order, $request) use ($custom_fields) {
-            $missing_params = array();
-            
-            // Check each required field
-            foreach ($custom_fields as $field => $args) {
-                if ($args['required']) {
+        // Register validation for WooCommerce REST API
+        add_action('rest_api_init', function() use ($custom_fields) {
+            register_rest_field('shop_order', 'custom_validation', array(
+                'get_callback' => null,
+                'update_callback' => null,
+                'schema' => null
+            ));
+
+            add_filter('rest_pre_insert_shop_order_object', function($order, $request) use ($custom_fields) {
+                $missing_params = array();
+                
+                foreach ($custom_fields as $field => $args) {
                     $value = $request->get_param($field);
-                    if (empty($value) && $value !== '0') {
+                    if (($value === null || $value === '')) {
                         $missing_params[] = $field;
                     }
                 }
-            }
-            
-            // If there are missing parameters, return an error
-            if (!empty($missing_params)) {
-                return new WP_Error(
-                    'rest_missing_callback_param',
-                    __('Missing parameter(s): ' . implode(', ', $missing_params)),
-                    array(
-                        'status' => 400,
-                        'params' => $missing_params
-                    )
-                );
-            }
-            
-            return $order;
-        }, 10, 2);
+                
+                if (!empty($missing_params)) {
+                    return new WP_Error(
+                        'rest_missing_callback_param',
+                        'Missing parameter(s): ' . implode(', ', $missing_params),
+                        array(
+                            'status' => 400,
+                            'params' => $missing_params
+                        )
+                    );
+                }
+                
+                return $order;
+            }, 10, 2);
+        });
 
+        // Register the custom fields
         foreach ($custom_fields as $field => $args) {
             register_rest_field('shop_order', $field, array(
                 'get_callback' => function($order) use ($field) {
                     return get_post_meta($order['id'], $field, true);
                 },
                 'update_callback' => function($value, $order, $field_name) {
-                    // Additional validation before updating
-                    if (empty($value) && $value !== '0') {
-                        return new WP_Error(
-                            'rest_invalid_param',
-                            sprintf(__('%s cannot be empty.', 'tfbdashboard'), $field_name),
-                            array('status' => 400)
-                        );
-                    }
-                    
-                    update_post_meta(
-                        $order->get_id(), 
-                        $field_name, 
-                        sanitize_text_field($value)
-                    );
-                    
-                    return true;
+                    update_post_meta($order->get_id(), $field_name, sanitize_text_field($value));
                 },
                 'schema' => array(
                     'description' => $args['description'],
