@@ -61,6 +61,8 @@ class TFBDashboard_Rest_API_Order {
                         return new WP_Error('empty_field', sprintf(__('The %s field cannot be empty.', 'tfbdashboard'), $args['description']));
                     } else if (!empty($value)) {
                         update_post_meta($order->get_id(), $field_name, sanitize_text_field($value));
+                    } else {
+                        return new WP_Error('empty_field', sprintf(__('The %s field cannot be empty.', 'tfbdashboard'), $args['description']));
                     }
                     return true;
                 },
