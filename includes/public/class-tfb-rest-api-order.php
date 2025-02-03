@@ -32,22 +32,22 @@ class TFBDashboard_Rest_API_Order {
         'challengePricingId' => array(
             'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
             'type'        => 'string',
-            'required'    => true,
+            'required' => true,
         ),
         'stageId' => array(
             'description' => __( 'Stage ID', 'tfbdashboard' ),
             'type'        => 'string',
-            'required'    => true,
+            'required' => true,
         ),
         'userEmail' => array(
             'description' => __( 'User Email', 'tfbdashboard' ),
             'type'        => 'string',
-            'required'    => true,
+            'required' => true,
         ),
         'brandId' => array(
             'description' => __( 'Brand ID', 'tfbdashboard' ),
             'type'        => 'string',
-            'required'    => true,
+            'required' => true,
         ),
     );
 
@@ -56,33 +56,27 @@ class TFBDashboard_Rest_API_Order {
             'get_callback'    => function( $order ) use ( $field ) {
                 return get_post_meta( $order['id'], $field, true );
             },
-            'update_callback' => function( $value, $order, $field_name ) use ( $field ) {
-                // Trim the value to remove whitespace.
-                $value = trim( $value );
-                // If this is the userEmail field and it's empty, you might opt to fallback to billing email.
-                if ( 'userEmail' === $field && empty( $value ) ) {
-                    $value = $order->get_billing_email();
+            'update_callback' => function( $value, $order, $field_name ) {
+                if ( ! empty( $value ) ) {
+                    update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
                 }
-                // Check if the value is empty or has fewer than 3 characters.
-                if ( empty( $value ) || strlen( $value ) < 3 ) {
-                    return new WP_Error(
-                        'rest_order_invalid_field',
-                        sprintf( __( '%s must be at least 3 characters.', 'tfbdashboard' ), $field_name ),
-                        array( 'status' => 400 )
-                    );
-                }
-                update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
             },
             'schema'          => array(
                 'description' => $args['description'],
                 'type'        => $args['type'],
                 'context'     => array( 'view', 'edit' ),
-                'required'    => true,
+                'required' => true,
             ),
+            'validate_callback' => function( $value, $request, $param ) {
+                // Check if the value is an empty string
+                if ( $value === '' ) {
+                    return new WP_Error( 'rest_invalid_param', sprintf( __( '%s cannot be an empty string.' ), $param ), array( 'status' => 400 ) );
+                }
+                return true;
+            },
         ) );
     }
 }
-
 
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
