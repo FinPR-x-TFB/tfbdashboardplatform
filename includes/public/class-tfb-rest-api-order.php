@@ -16,6 +16,7 @@ class TFBDashboard_Rest_API_Order {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ) );
         add_filter( 'rest_pre_insert_shop_order', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
         add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
+        add_filter( 'woocommerce_rest_order_query', array( $this, 'tfbdashboard_filter_orders_by_billing_email' ), 10, 2 );
     }
 
     public function tfbdashboard_register_custom_order_fields() {
@@ -79,5 +80,31 @@ class TFBDashboard_Rest_API_Order {
                 $order->update_meta_data( $field, sanitize_text_field( $request[ $field ] ) );
             }
         }
+    }
+
+    /**
+     * Filter orders by billing email if provided via the REST API.
+     *
+     * Allows API requests like:
+     * /wp-json/wc/v3/orders?billing_email=john.doe@example.com
+     *
+     * @param array           $args    The query arguments.
+     * @param WP_REST_Request $request The REST API request object.
+     * @return array Modified query arguments.
+     */
+    public function tfbdashboard_filter_orders_by_billing_email( $args, $request ) {
+        if ( ! empty( $request['billing_email'] ) ) {
+            $billing_email = sanitize_text_field( $request['billing_email'] );
+            // Ensure meta_query exists.
+            if ( ! isset( $args['meta_query'] ) || ! is_array( $args['meta_query'] ) ) {
+                $args['meta_query'] = array();
+            }
+            $args['meta_query'][] = array(
+                'key'     => '_billing_email',
+                'value'   => $billing_email,
+                'compare' => '='
+            );
+        }
+        return $args;
     }
 }
