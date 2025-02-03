@@ -61,7 +61,9 @@ class TFBDashboard_Rest_API_Order {
 
                     // Check for empty strings in all required fields
                     foreach ($required_fields as $req_field) {
-                        if (is_string($value[$req_field]) && trim($value[$req_field]) === '') {
+                        if (is_string($value) || !array_key_exists($req_field, $value)) {
+                            return new WP_Error('empty_field', sprintf(__('The %s field cannot be empty.', 'tfbdashboard'), $custom_fields[$req_field]['description']));
+                        } else if (is_string($value[$req_field]) && trim($value[$req_field]) === '') {
                             return new WP_Error('empty_field', sprintf(__('The %s field cannot be empty.', 'tfbdashboard'), $custom_fields[$req_field]['description']));
                         }
                     }
