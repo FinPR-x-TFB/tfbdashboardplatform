@@ -14,6 +14,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TFBDashboard_Rest_API_Order {
     public function __construct() {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ) );
+        add_filter( 'woocommerce_rest_create_order_validation', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
+        //add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
+
+
             
         // Use filter to handle customer linking/creation before order insert.
         add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'handle_order_customer' ), 10, 2 );
@@ -38,6 +42,7 @@ class TFBDashboard_Rest_API_Order {
             'userEmail' => array(
                 'description' => __( 'User Email', 'tfbdashboard' ),
                 'type'        => 'string',
+                'required' => true,
             ),
             'brandId' => array(
                 'description' => __( 'Brand ID', 'tfbdashboard' ),
@@ -67,15 +72,29 @@ class TFBDashboard_Rest_API_Order {
     }
 
 
-    public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
-        $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
-        foreach ( $required_fields as $field ) {
-            if ( empty( $request[ $field ] ) ) {
-                return new WP_Error( 'rest_order_missing_field', sprintf( __( '%s is required.', 'tfbdashboard' ), $field ), array( 'status' => 400 ) );
-            }
+    public function tfbdashboard_validate_custom_order_fields( $errors, $request ) {
+        // Retrieve each parameter using get_param() and trim it.
+        $challengePricingId = trim( $request->get_param( 'challengePricingId' ) );
+        $stageId            = trim( $request->get_param( 'stageId' ) );
+        $userEmail          = trim( $request->get_param( 'userEmail' ) );
+        $brandId            = trim( $request->get_param( 'brandId' ) );
+
+        if ( '' === $challengePricingId ) {
+            $errors->add( 'missing_challenge_pricing_id', __( 'Challenge Pricing ID is required.', 'tfbdashboard' ) );
         }
-        return $prepared_post;
+        if ( '' === $stageId ) {
+            $errors->add( 'missing_stage_id', __( 'Stage ID is required.', 'tfbdashboard' ) );
+        }
+        if ( '' === $userEmail ) {
+            $errors->add( 'missing_user_email', __( 'User email is required.', 'tfbdashboard' ) );
+        }
+        if ( '' === $brandId ) {
+            $errors->add( 'missing_brand_id', __( 'Brand ID is required.', 'tfbdashboard' ) );
+        }
+        
+        return $errors;
     }
+
 
     public function tfbdashboard_save_custom_order_fields( $order, $request ) {
         $custom_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
