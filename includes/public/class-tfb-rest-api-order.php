@@ -65,16 +65,21 @@ class TFBDashboard_Rest_API_Order {
     }
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
+        // Retrieve the entire JSON body.
+        $params = $request->get_json_params();
         $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
         foreach ( $required_fields as $field ) {
-            // Use get_param() to retrieve the value.
-            $value = $request->get_param( $field );
-            if ( empty( $value ) ) {
-                return new WP_Error( 'rest_order_missing_field', sprintf( __( '%s is required.', 'tfbdashboard' ), $field ), array( 'status' => 400 ) );
+            if ( empty( $params[$field] ) ) {
+                return new WP_Error( 
+                    'rest_order_missing_field', 
+                    sprintf( __( '%s is required.', 'tfbdashboard' ), $field ), 
+                    array( 'status' => 400 ) 
+                );
             }
         }
         return $prepared_post;
     }
+
 
 
     public function tfbdashboard_save_custom_order_fields( $order, $request ) {
