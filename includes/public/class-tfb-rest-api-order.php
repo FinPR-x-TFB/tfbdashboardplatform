@@ -15,8 +15,8 @@ class TFBDashboard_Rest_API_Order {
     public function __construct() {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ));
         add_filter( 'woocommerce_rest_prepare_order_object_for_response',  array( $this, 'validate_custom_order_fields_in_response'), 10, 3 );
-        add_filter( 'woocommerce_rest_create_order_validation', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
-        add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
+        //add_filter( 'woocommerce_rest_create_order_validation', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
+        //add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
 
 
             
@@ -57,6 +57,29 @@ class TFBDashboard_Rest_API_Order {
                 'get_callback' => function($order) use ($field) {
                     return get_post_meta($order['id'], $field, true);
                 },
+                'update_callback' => function($value, $order, $field_name) use ($args) {
+                    $required_fields = array('challengePricingId', 'stageId', 'userEmail', 'brandId');
+
+                    // Check for empty strings or length less than 3 characters in all required fields
+                    foreach ($required_fields as $req_field) {
+                        if (
+                            is_string($value) 
+                            || !array_key_exists($req_field, $value) 
+                            || (is_string($value[$req_field]) && (trim($value[$req_field]) === '' || strlen(trim($value[$req_field])) < 3)) 
+                        ) {
+                            return new WP_Error('invalid_field', sprintf(__('The %s field must have at least 3 characters.', 'tfbdashboard'), $custom_fields[$req_field]['description']));
+                        }
+                    }
+
+                    // If all validations pass, update the post meta
+                    if (!empty($value)) {
+                        foreach ($value as $key => $val) {
+                            update_post_meta($order->get_id(), $key, sanitize_text_field($val));
+                        }
+                    }
+
+                    return true;
+                },
                 'schema' => array(
                     'description' => $args['description'],
                     'type' => $args['type'],
@@ -69,23 +92,23 @@ class TFBDashboard_Rest_API_Order {
 
 
 
-public function validate_custom_order_fields_in_response( $response, $order, $request ) {
-    $required_fields = array(
-        'challengePricingId',
-        'stageId',
-        'userEmail',
-        'brandId',
-    );
+    public function validate_custom_order_fields_in_response( $response, $order, $request ) {
+        $required_fields = array(
+            'challengePricingId',
+            'stageId',
+            'userEmail',
+            'brandId',
+        );
 
-    foreach ( $required_fields as $field ) {
-        $field_value = get_post_meta( $order->get_id(), $field, true );
-        if ( is_string( $field_value ) && trim( $field_value ) === '' ) {
-            $response->add_error( 'empty_field', sprintf( __( 'The %s field cannot be empty.', 'your-text-domain' ), $field ), array( 'status' => 400 ) );
+        foreach ( $required_fields as $field ) {
+            $field_value = get_post_meta( $order->get_id(), $field, true );
+            if ( is_string( $field_value ) && trim( $field_value ) === '' ) {
+                $response->add_error( 'empty_field', sprintf( __( 'The %s field cannot be empty.', 'your-text-domain' ), $field ), array( 'status' => 400 ) );
+            }
         }
-    }
 
-    return $response;
-}
+        return $response;
+    }
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
         $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
