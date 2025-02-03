@@ -13,102 +13,73 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class TFBDashboard_Rest_API_Order {
     public function __construct() {
-        add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ));
-        add_filter( 'woocommerce_rest_prepare_order_object_for_response',  array( $this, 'validate_custom_order_fields_in_response'), 10, 3 );
+        add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ) );
         //add_filter( 'woocommerce_rest_create_order_validation', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
         //add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
 
 
             
         // Use filter to handle customer linking/creation before order insert.
-        //add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'handle_order_customer' ), 10, 2 );
+        add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'handle_order_customer' ), 10, 2 );
         
         // Disable new user notification emails.
         add_filter( 'woocommerce_email_enabled_customer_new_account', '__return_false' );
         add_filter( 'woocommerce_email_enabled_admin_new_user', '__return_false' );
     }
 
-    public function tfbdashboard_register_custom_order_fields() {
+   public function tfbdashboard_register_custom_order_fields() {
         $custom_fields = array(
             'challengePricingId' => array(
                 'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
-                'type' => 'string',
-                'required' => true,
+                'type'        => 'string',
+                'required'    => true,
             ),
             'stageId' => array(
                 'description' => __( 'Stage ID', 'tfbdashboard' ),
-                'type' => 'string',
-                'required' => true,
+                'type'        => 'string',
+                'required'    => true,
             ),
             'userEmail' => array(
                 'description' => __( 'User Email', 'tfbdashboard' ),
-                'type' => 'string',
-                'required' => true,
+                'type'        => 'string',
+                'required'    => true,
             ),
             'brandId' => array(
                 'description' => __( 'Brand ID', 'tfbdashboard' ),
-                'type' => 'string',
-                'required' => true,
+                'type'        => 'string',
+                'required'    => true,
             ),
         );
 
-        foreach ($custom_fields as $field => $args) {
-            register_rest_field('shop_order', $field, array(
-                'get_callback' => function($order) use ($field) {
-                    return get_post_meta($order['id'], $field, true);
+        foreach ( $custom_fields as $field => $args ) {
+            register_rest_field( 'shop_order', $field, array(
+                'get_callback'    => function( $order ) use ( $field ) {
+                    return get_post_meta( $order['id'], $field, true );
                 },
-                'update_callback' => function($value, $order, $field_name) use ($args) {
-                    $required_fields = array('challengePricingId', 'stageId', 'userEmail', 'brandId');
-
-                    // Check for empty strings or length less than 3 characters in all required fields
-                    foreach ($required_fields as $req_field) {
-                        if (
-                            is_string($value) 
-                            || !array_key_exists($req_field, $value) 
-                            || (is_string($value[$req_field]) && (trim($value[$req_field]) === '' || strlen(trim($value[$req_field])) < 3)) 
-                        ) {
-                            return new WP_Error('invalid_field', sprintf(__('The %s field must have at least 3 characters.', 'tfbdashboard'), $custom_fields[$req_field]['description']));
-                        }
+                'update_callback' => function( $value, $order, $field_name ) use ( $field ) {
+                    // For userEmail, if empty, use the billing email.
+                    if ( 'userEmail' === $field && empty( $value ) ) {
+                        $value = $order->get_billing_email();
                     }
-
-                    // If all validations pass, update the post meta
-                    if (!empty($value)) {
-                        foreach ($value as $key => $val) {
-                            update_post_meta($order->get_id(), $key, sanitize_text_field($val));
-                        }
+                    // Trim the value.
+                    $value = trim( $value );
+                    // Validate that the value has at least 3 characters.
+                    if ( strlen( $value ) < 3 ) {
+                        return new WP_Error( 'rest_order_field_invalid', sprintf( __( '%s must be at least 3 characters.', 'tfbdashboard' ), $field_name ), array( 'status' => 400 ) );
                     }
-
-                    return true;
+                    update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
                 },
-                'schema' => array(
+                'schema'          => array(
                     'description' => $args['description'],
-                    'type' => $args['type'],
-                    'context' => array('view', 'edit'),
-                    'required' => true,
+                    'type'        => $args['type'],
+                    'context'     => array( 'view', 'edit' ),
+                    'required'    => true,
                 ),
-            ));
+            ) );
         }
     }
 
 
-
-    public function validate_custom_order_fields_in_response( $response, $order, $request ) {
-        $required_fields = array(
-            'challengePricingId',
-            'stageId',
-            'userEmail',
-            'brandId',
-        );
-
-        foreach ( $required_fields as $field ) {
-            $field_value = get_post_meta( $order->get_id(), $field, true );
-            if ( is_string( $field_value ) && trim( $field_value ) === '' ) {
-                $response->add_error( 'empty_field', sprintf( __( 'The %s field cannot be empty.', 'your-text-domain' ), $field ), array( 'status' => 400 ) );
-            }
-        }
-
-        return $response;
-    }
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
         $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
