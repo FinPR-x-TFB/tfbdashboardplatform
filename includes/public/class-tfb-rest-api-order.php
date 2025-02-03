@@ -31,11 +31,6 @@ class TFBDashboard_Rest_API_Order {
                 'type'        => 'string',
                 'required'    => true,
             ),
-            'userEmail' => array(
-                'description' => __( 'User Email', 'tfbdashboard' ),
-                'type'        => 'string',
-                'required'    => true,
-            ),
             'brandId' => array(
                 'description' => __( 'Brand ID', 'tfbdashboard' ),
                 'type'        => 'string',
@@ -64,7 +59,7 @@ class TFBDashboard_Rest_API_Order {
     }
 
     public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
-        $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
+        $required_fields = array( 'challengePricingId', 'stageId', 'brandId' );
         foreach ( $required_fields as $field ) {
             if ( empty( $request[ $field ] ) ) {
                 return new WP_Error( 'rest_order_missing_field', sprintf( __( '%s is required.', 'tfbdashboard' ), $field ), array( 'status' => 400 ) );
@@ -74,7 +69,7 @@ class TFBDashboard_Rest_API_Order {
     }
 
     public function tfbdashboard_save_custom_order_fields( $order, $request ) {
-        $custom_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
+        $custom_fields = array( 'challengePricingId', 'stageId', 'brandId' );
         foreach ( $custom_fields as $field ) {
             if ( isset( $request[ $field ] ) && ! empty( $request[ $field ] ) ) {
                 $order->update_meta_data( $field, sanitize_text_field( $request[ $field ] ) );
