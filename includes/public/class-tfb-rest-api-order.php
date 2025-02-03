@@ -81,7 +81,19 @@ class TFBDashboard_Rest_API_Order {
                 $order->update_meta_data( $field, sanitize_text_field( $request[ $field ] ) );
             }
         }
+        
+        // If userEmail is empty, update it with billing email.
+        $user_email = $order->get_meta( 'userEmail', true );
+        if ( empty( $user_email ) ) {
+            if ( isset( $request['billing']['email'] ) && ! empty( $request['billing']['email'] ) ) {
+                $order->update_meta_data( 'userEmail', sanitize_text_field( $request['billing']['email'] ) );
+            } else {
+                // Fallback: use the order's billing email (if already set).
+                $order->update_meta_data( 'userEmail', $order->get_billing_email() );
+            }
+        }
     }
+
 
     /**
      * Handles the order's customer.
