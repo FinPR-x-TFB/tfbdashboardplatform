@@ -14,121 +14,79 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TFBDashboard_Rest_API_Order {
     public function __construct() {
         add_action( 'rest_api_init', array( $this, 'tfbdashboard_register_custom_order_fields' ) );
-        add_filter( 'woocommerce_rest_create_order_validation', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
-        add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
+        //add_filter( 'woocommerce_rest_create_order_validation', array( $this, 'tfbdashboard_validate_custom_order_fields' ), 10, 2 );
+        //add_action( 'woocommerce_rest_insert_order', array( $this, 'tfbdashboard_save_custom_order_fields' ), 10, 2 );
 
-    
+
+            
         // Use filter to handle customer linking/creation before order insert.
         add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'handle_order_customer' ), 10, 2 );
+        
+        // Disable new user notification emails.
         add_filter( 'woocommerce_email_enabled_customer_new_account', '__return_false' );
         add_filter( 'woocommerce_email_enabled_admin_new_user', '__return_false' );
     }
 
-   public function tfbdashboard_register_custom_order_fields() {
+    public function tfbdashboard_register_custom_order_fields() {
         $custom_fields = array(
             'challengePricingId' => array(
                 'description' => __( 'Challenge Pricing ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required'    => true,
+                'required' => true,
             ),
             'stageId' => array(
                 'description' => __( 'Stage ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required'    => true,
+                'required' => true,
             ),
             'userEmail' => array(
                 'description' => __( 'User Email', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required'    => true,
+                'required' => true,
             ),
             'brandId' => array(
                 'description' => __( 'Brand ID', 'tfbdashboard' ),
                 'type'        => 'string',
-                'required'    => true,
+                'required' => true,
             ),
         );
 
         foreach ( $custom_fields as $field => $args ) {
             register_rest_field( 'shop_order', $field, array(
                 'get_callback'    => function( $order ) use ( $field ) {
-                    return $this->tfbdashboard_get_custom_field_callback( $order, $field );
+                    return get_post_meta( $order['id'], $field, true );
                 },
-                'update_callback' => function( $value, $order, $field_name ) use ( $field ) {
-                    return $this->tfbdashboard_update_custom_field_callback( $value, $order, $field_name, $field );
+                'update_callback' => function( $value, $order, $field_name ) {
+                    if ( ! empty( $value ) ) {
+                        update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
+                    }
                 },
                 'schema'          => array(
                     'description' => $args['description'],
                     'type'        => $args['type'],
                     'context'     => array( 'view', 'edit' ),
-                    'required'    => true,
+                    'required' => true,
                 ),
             ) );
         }
     }
 
 
-    /**
-     * Get callback for custom fields.
-     *
-     * @param array $order The order array from the REST response.
-     * @param string $field The custom field name.
-     * @return mixed
-     */
-    public function tfbdashboard_get_custom_field_callback( $order, $field ) {
-        return get_post_meta( $order['id'], $field, true );
-    }
-    
-    /**
-     * Update callback for custom fields with validation.
-     *
-     * If the field is "userEmail" and the value is empty, it falls back to the billing email.
-     * If the final value is empty, it returns a WP_Error.
-     *
-     * @param mixed $value The new value.
-     * @param WC_Order $order The order object.
-     * @param string $field_name The meta key.
-     * @param string $field The custom field name.
-     * @return void|WP_Error
-     */
-    public function tfbdashboard_update_custom_field_callback( $value, $order, $field_name, $field ) {
-        // For userEmail, if empty, use the billing email.
-        if ( 'userEmail' === $field && empty( $value ) ) {
-            $value = $order->get_billing_email();
-        }
-        
-        // Trim the value to catch empty strings.
-        $value = trim( $value );
-        if ( empty( $value ) ) {
-            return new WP_Error( 'rest_order_field_required', sprintf( __( '%s is required.', 'tfbdashboard' ), $field_name ), array( 'status' => 400 ) );
-        }
-        
-        update_post_meta( $order->get_id(), $field_name, sanitize_text_field( $value ) );
-    }
-    
-    /**
-     * Additional validation using the validation filter.
-     * (This is optional if you want to perform separate validation.)
-     */
-    public function tfbdashboard_validate_custom_order_fields( $errors, $request ) {
-        $fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
-        foreach ( $fields as $field ) {
-            $value = trim( $request->get_param( $field ) );
-            if ( '' === $value ) {
-                $errors->add( 'missing_' . $field, sprintf( __( '%s is required.', 'tfbdashboard' ), $field ) );
+    public function tfbdashboard_validate_custom_order_fields( $prepared_post, $request ) {
+        $required_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
+        foreach ( $required_fields as $field ) {
+            if ( empty( $request[ $field ] ) ) {
+                return new WP_Error( 'rest_order_missing_field', sprintf( __( '%s is required.', 'tfbdashboard' ), $field ), array( 'status' => 400 ) );
             }
         }
-        return $errors;
+        return $prepared_post;
     }
-    
-    /**
-     * Save custom fields into order meta.
-     */
+
     public function tfbdashboard_save_custom_order_fields( $order, $request ) {
-        $fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
-        foreach ( $fields as $field ) {
-            $value = trim( $request->get_param( $field ) );
-            if ( ! empty( $value ) ) {
-                $order->update_meta_data( $field, sanitize_text_field( $value ) );
+        $custom_fields = array( 'challengePricingId', 'stageId', 'userEmail', 'brandId' );
+        foreach ( $custom_fields as $field ) {
+            if ( isset( $request[ $field ] ) && ! empty( $request[ $field ] ) ) {
+                $order->update_meta_data( $field, sanitize_text_field( $request[ $field ] ) );
             }
         }
     }
