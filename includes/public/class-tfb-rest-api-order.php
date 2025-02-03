@@ -20,7 +20,7 @@ class TFBDashboard_Rest_API_Order {
 
             
         // Use filter to handle customer linking/creation before order insert.
-        add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'handle_order_customer' ), 10, 2 );
+        //add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'handle_order_customer' ), 10, 2 );
         
         // Disable new user notification emails.
         add_filter( 'woocommerce_email_enabled_customer_new_account', '__return_false' );
