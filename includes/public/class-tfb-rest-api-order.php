@@ -107,20 +107,15 @@ class TFBDashboard_Rest_API_Order {
      * @return array Modified query arguments.
      */
     public function tfbdashboard_filter_orders_by_billing_email( $args, $request ) {
-        // Use the WP_REST_Request getter to retrieve the parameter.
         $billing_email = $request->get_param( 'billing_email' );
         if ( ! empty( $billing_email ) ) {
             $billing_email = sanitize_email( $billing_email );
-            // Ensure meta_query exists.
-            if ( ! isset( $args['meta_query'] ) || ! is_array( $args['meta_query'] ) ) {
-                $args['meta_query'] = array();
-            }
-            $args['meta_query'][] = array(
-                'key'     => '_billing_email',
-                'value'   => $billing_email,
-                'compare' => '=',
-            );
+            error_log( 'Filtering orders by billing_email: ' . $billing_email );
+            $args['meta_key']   = '_billing_email';
+            $args['meta_value'] = $billing_email;
+            error_log( 'Query args: ' . print_r( $args, true ) );
         }
         return $args;
     }
+
 }
